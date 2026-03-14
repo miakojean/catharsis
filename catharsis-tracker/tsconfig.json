@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES6",                // assez moderne, mais tu peux viser ES5 si besoin de vieux navigateurs
+    "module": "ES6",                 // pour que le bundler gère les imports
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",              // dossier de sortie
+    "declaration": false,            // pas besoin de fichiers .d.ts pour un script client
+    "removeComments": true            // allège le fichier final
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

@@ -290,3 +290,6 @@ public
 *.swo
 *~
 .DS_Store
+
+# Api files
+*.http

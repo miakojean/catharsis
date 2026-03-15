@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import (index)
+from .views import (CustomerDetailView)
 
 urlpatterns = [
-    path("",index, name="index")
+    path("customer/", CustomerDetailView.as_view(), name="customer_detail"),
 ]

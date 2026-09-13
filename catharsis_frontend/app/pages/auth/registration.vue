@@ -1,12 +1,15 @@
 <template>
   <div class="page-layout">
-    <h1>Bienvenu au pays mon fils</h1>
+    <registrationForm />
   </div>
 </template>
 
 <script>
+import registrationForm from '../../components/forms/registrationForm.vue'
 export default {
-
+  components:{
+    registrationForm
+  }
 }
 </script>
 

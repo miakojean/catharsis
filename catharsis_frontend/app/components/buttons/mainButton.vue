@@ -41,7 +41,7 @@ export default {
 }
 
 .main-button:hover{
-    background: var(--black-forest);
+    background: #1b7414;
     color: #fff;
     transition: 0.1s ease-in;
     border: none;

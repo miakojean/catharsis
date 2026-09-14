@@ -12,7 +12,7 @@
 
 :root{
     --black-forest: #293f14ff;
-    --green: #386c0bff;
+    --green: #22941a;
     --bright-fern: #38a700ff;
     --malachite: #31d843ff;
     --spring-green: #3eff8bff;
@@ -32,13 +32,14 @@ html{
 
 form{
     width: 100%;
-    max-width: 500px;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 1rem;
     padding: 1rem;
+    scrollbar-width: none;
 }
 
 .form-body, .form-header, .form-footer{

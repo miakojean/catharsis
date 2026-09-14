@@ -1,5 +1,5 @@
 <template>
-    <button class="main-button">
+    <button class="social-button">
         <span v-if="!isLoading">
             {{ label }}
         </span>
@@ -26,26 +26,27 @@ export default {
 
 <style scoped>
 
-.main-button{
+.social-button{
     padding: 0.8rem;
     width: 100%;
     max-width: 400px;
     border-radius: 1.5rem;
     border: none;
-    background: var(--my-black);
-    color: #fff;
+    background: none;
+    color: var(--green);
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    transition: 0.2s ease-in-out;
+    transition: 0.3s ease-in-out;
+    border: 1px solid #9a9a9a
 }
 
-.main-button:hover{
-    background: var(--black-forest);
-    color: #fff;
-    transition: 0.1s ease-in;
+.social-button:hover{
+    color: var(--green);
+    transition: 0.2s ease-in;
     border: none;
     transform: translateY(-2px);
+    border: 1px solid #9a9a9a
 }
 
 </style>

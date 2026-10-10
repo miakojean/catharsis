@@ -19,7 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
   });
 
   // state
-  const user = ref<User>({
+  const userCookie = useCookie<User | null>('user');
+  const user = ref<User>(userCookie.value || {
     id: '',
     username: '',
     email: '',
@@ -67,6 +68,15 @@ export const useAuthStore = defineStore('auth', () => {
       if (response && response.access_token) {
         const tokenCookie = useCookie('token');
         tokenCookie.value = response.access_token;
+        
+        if (response.user) {
+          user.value = response.user;
+          userCookie.value = response.user;
+        } else {
+          user.value.email = payload.email;
+          userCookie.value = { email: payload.email };
+        }
+
         message.value.successMessage = "Connexion réussie !";
         return true;
       } else {

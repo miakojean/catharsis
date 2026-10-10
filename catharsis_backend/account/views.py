@@ -66,6 +66,11 @@ class CustomerLoginView(APIView):
                     {"error": "Account is inactive."},
                     status=status.HTTP_403_FORBIDDEN
                 )
+        else:
+            return Response(
+                {"error": "Invalid email or password."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
             
         # Générer les tokens d'authentification ou gérer la session ici
         refresh = RefreshToken.for_user(user)
@@ -79,10 +84,12 @@ class CustomerLoginView(APIView):
             {
                 "message": "Login successful",
                 "access_token": access_token,
-                "refresh_token": refresh_token
+                "refresh_token": refresh_token,
+                "user": {
+                    "id": str(user.id),
+                    "email": user.email
+                }
             },
             status=status.HTTP_200_OK
         )
-            
-        
-        
+        return response        

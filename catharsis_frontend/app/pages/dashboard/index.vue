@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-root" :class="{ 'dark-theme': isDark }">
     <Head>
-      <Title>Dashboard — Gotics Analytics</Title>
+      <Title>Dashboard — Catharsis Analytics</Title>
       <Meta name="description" content="Gotics Business & Web Analytics Dashboard" />
     </Head>
 

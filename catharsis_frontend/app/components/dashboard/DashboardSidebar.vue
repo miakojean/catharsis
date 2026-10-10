@@ -17,7 +17,7 @@
             />
           </svg>
         </div>
-        <span class="brand-name">Gotics</span>
+        <span class="brand-name">Catharsis</span>
       </NuxtLink>
     </div>
 
@@ -169,6 +169,7 @@
         </button>
       </div>
     </div>
+    
   </aside>
 </template>
 
@@ -188,14 +189,17 @@ const activeMenu = ref('')
 
 <style scoped>
 .dashboard-sidebar {
+  position:sticky;
+  top: 0px;
   width: 240px;
   min-width: 240px;
+  height: 100vh;
   background-color: var(--sidebar-bg, #ffffff);
   border-right: 1px solid var(--border-color, #e2e8f0);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1.5rem 1.25rem 1.5rem 1.25rem;
+  padding: 1.25rem ;
   box-sizing: border-box;
   user-select: none;
 }

@@ -1,6 +1,9 @@
 <template>
   <header class="dashboard-header">
-    <h1 class="header-title">Dashboard</h1>
+    <div class="header-titles">
+      <h1 class="header-title">Dashboard</h1>
+      <p v-if="authStore.user?.email" class="header-subtitle">Bienvenue, {{ authStore.user.email }}</p>
+    </div>
 
     <div class="header-actions">
       <!-- Search input -->
@@ -31,6 +34,7 @@
           src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face"
           alt="User Profile"
           class="user-avatar-img"
+          :title="authStore.user?.email"
         />
       </div>
     </div>
@@ -38,6 +42,8 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/authStore'
+const authStore = useAuthStore()
 // Top Dashboard Header with Search, Notifications and Avatar
 </script>
 
@@ -50,12 +56,23 @@
   margin-bottom: 1.5rem;
 }
 
+.header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
 .header-title {
   font-size: 1.625rem;
   font-weight: 700;
   color: var(--text-heading, #0f172a);
   letter-spacing: -0.02em;
   margin: 0;
+}
+
+.header-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, #64748b);
+  margin: 0.25rem 0 0 0;
 }
 
 .header-actions {

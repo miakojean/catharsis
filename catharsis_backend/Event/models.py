@@ -2,21 +2,35 @@ from django.db import models
 from django.utils import timezone
 import uuid
 
-# Create your models here.
-
 from account.models import Customer
 
 class Project(models.Model):
-    """Réprésente un projet ou le site web tracké (lié au data-site-id)"""
+    """Représente un projet ou le site web tracké (lié au data-site-id)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='projects')
 
-    site_id = models.CharField(max_length=100, unique=True)
+    site_id = models.CharField(max_length=100, unique=True, editable=False, blank=True)
     name = models.CharField(max_length=200)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.site_id})"
+
+    def generate_site_id(self):
+        """Génère un site_id unique pour le projet"""
+        while True:
+            new_site_id = uuid.uuid4().hex[:10]
+            if not Project.objects.filter(site_id=new_site_id).exists():
+                return new_site_id
+
+    def save(self, *args, **kwargs):
+        # Généré une seule fois, à la création
+        if not self.site_id:
+            self.site_id = self.generate_site_id()
+        super().save(*args, **kwargs)
 
 class Session(models.Model):
     """Regroupe l'historique d'un visiteur unique"""
@@ -33,6 +47,9 @@ class Session(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Session {self.session_id} pour le projet {self.project.name}"
 
 class Event(models.Model):
 

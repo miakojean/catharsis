@@ -46,7 +46,7 @@
 
               <!-- Divider -->
               <div class="auth-divider">
-                <span class="divider-line"></span>
+                <span class="divider-line"></span> 
                 <span class="divider-text">{{ currentLang === 'en' ? 'Or' : 'ou' }}</span>
                 <span class="divider-line"></span>
               </div>

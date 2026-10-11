@@ -47,19 +47,37 @@
           </div>
 
         </div>
+
+        <div class="">
+          <emptyChartState
+            title="No data yet"
+            description="Your data will appear here once you create or import your first records"
+            actionText="Add Data"
+            @action="() => { console.log('Action button clicked!') }"
+          />
+        </div>
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useProjectSiteStore } from '~/stores/projectSiteStore'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 import KpiMatrixCard from '~/components/dashboard/KpiMatrixCard.vue'
 import HeatmapCard from '~/components/dashboard/HeatmapCard.vue'
 import ActiveUsersChart from '~/components/dashboard/ActiveUsersChart.vue'
 import SessionsDeviceCard from '~/components/dashboard/SessionsDeviceCard.vue'
+import emptyChartState from '~/components/dashboard/emptyChartState.vue'
+
+
+const projectStore = useProjectSiteStore();
+
+onMounted(async () => {
+  await projectStore.getProjects();
+});
 
 // Theme toggle state (default light matching the screenshot)
 const isDark = ref(false)

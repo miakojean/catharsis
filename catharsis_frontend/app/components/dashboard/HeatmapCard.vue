@@ -1,9 +1,9 @@
 <template>
-  <div class="heatmap-card">
+  <div class="heatmap-card" :class="{ 'is-loading': analyticsStore.isLoading }">
     <!-- Header -->
     <div class="card-header">
       <h2 class="card-title">User by time of day</h2>
-      <button type="button" class="more-btn" aria-label="More options">
+      <button type="button" class="more-btn" aria-label="More options" @click="analyticsStore.fetchAnalytics()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="5" cy="12" r="2" />
           <circle cx="12" cy="12" r="2" />
@@ -21,11 +21,11 @@
           
           <div class="cells-row">
             <div
-              v-for="(val, hIdx) in heatmapData[dIdx]"
+              v-for="(val, hIdx) in (heatmapMatrix[dIdx] || [])"
               :key="hIdx"
               class="heatmap-cell"
               :class="getCellClass(val)"
-              :title="`${day} - ${hours[hIdx]}: ${val} users`"
+              :title="`${day} - ${hours[hIdx] || ''}: ${val} users`"
             ></div>
           </div>
         </div>
@@ -43,11 +43,11 @@
       <div class="scale-section">
         <div class="scale-bar"></div>
         <div class="scale-ticks">
-          <span>50</span>
-          <span>200</span>
-          <span>400</span>
-          <span>600</span>
-          <span>800</span>
+          <span>0</span>
+          <span>{{ Math.round(maxVal * 0.25) }}</span>
+          <span>{{ Math.round(maxVal * 0.5) }}</span>
+          <span>{{ Math.round(maxVal * 0.75) }}</span>
+          <span>{{ maxVal }}</span>
         </div>
       </div>
     </div>
@@ -55,35 +55,35 @@
 </template>
 
 <script setup lang="ts">
-const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const hours = ['12 am', '2 am', '4 am', '6 am', '8 am', '10 am', '12 am', '12 am', '2 pm', '4 pm', '6 pm']
+import { computed } from 'vue'
+import { useAnalyticsStore } from '~/stores/analyticsStore'
 
-// Heatmap data matrix matching the screenshot visual distribution (higher around 10am-2pm)
-const heatmapData = [
-  // Sun: moderate mid-day
-  [0, 0, 0, 0, 100, 250, 450, 350, 300, 200, 100],
-  // Mon: higher weekday
-  [0, 0, 0, 80, 280, 580, 820, 620, 420, 260, 120],
-  // Tue: peak weekday
-  [0, 0, 0, 120, 380, 750, 880, 720, 520, 340, 150],
-  // Wed: strong mid-week
-  [0, 0, 90, 180, 420, 800, 890, 740, 560, 360, 180],
-  // Thu: high peak
-  [0, 0, 80, 220, 480, 850, 890, 780, 580, 380, 200],
-  // Fri: active afternoon
-  [0, 0, 60, 160, 390, 700, 790, 680, 490, 310, 160],
-  // Sat: weekend pattern
-  [0, 0, 0, 0, 120, 320, 500, 420, 280, 160, 80]
-]
+const analyticsStore = useAnalyticsStore()
+
+const days = computed(() => analyticsStore.heatmap.days || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
+const hours = computed(() => analyticsStore.heatmap.hours || ['12 am', '2 am', '4 am', '6 am', '8 am', '10 am', '12 am', '12 am', '2 pm', '4 pm', '6 pm'])
+const heatmapMatrix = computed(() => analyticsStore.heatmap.matrix || [])
+
+const maxVal = computed(() => {
+  let highest = 0
+  for (const row of heatmapMatrix.value) {
+    for (const v of row) {
+      if (v > highest) highest = v
+    }
+  }
+  return highest
+})
 
 function getCellClass(val: number) {
-  if (val >= 750) return 'heat-level-5'
-  if (val >= 500) return 'heat-level-4'
-  if (val >= 300) return 'heat-level-3'
-  if (val >= 150) return 'heat-level-2'
-  if (val > 0) return 'heat-level-1'
-  return 'heat-empty'
+  if (val <= 0 || maxVal.value <= 0) return 'heat-empty'
+  const ratio = val / maxVal.value
+  if (ratio >= 0.8) return 'heat-level-5'
+  if (ratio >= 0.55) return 'heat-level-4'
+  if (ratio >= 0.35) return 'heat-level-3'
+  if (ratio >= 0.15) return 'heat-level-2'
+  return 'heat-level-1'
 }
+
 </script>
 
 <style scoped>
@@ -95,6 +95,11 @@ function getCellClass(val: number) {
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: opacity 0.2s ease;
+}
+
+.heatmap-card.is-loading {
+  opacity: 0.7;
 }
 
 .card-header {
@@ -173,29 +178,29 @@ function getCellClass(val: number) {
   z-index: 5;
 }
 
-/* Heat levels */
+/* Heat levels matching brand green and cobalt blue */
 .heat-empty {
-  background-color: transparent;
+  background-color: var(--icon-bg, #f8fafc);
 }
 
 .heat-level-1 {
-  background-color: #eff6ff;
+  background-color: #dcfce7;
 }
 
 .heat-level-2 {
-  background-color: #bfdbfe;
+  background-color: #86efac;
 }
 
 .heat-level-3 {
-  background-color: #60a5fa;
+  background-color: var(--malachite, #31d843);
 }
 
 .heat-level-4 {
-  background-color: #2563eb;
+  background-color: var(--green, #22941a);
 }
 
 .heat-level-5 {
-  background-color: #1e40af;
+  background-color: var(--black-forest, #293f14);
 }
 
 /* Hours row */
@@ -240,10 +245,11 @@ function getCellClass(val: number) {
   border-radius: 9999px;
   background: linear-gradient(
     to right,
-    #bfdbfe 0%,
-    #60a5fa 35%,
-    #2563eb 65%,
-    #1e40af 100%
+    #dcfce7 0%,
+    #86efac 25%,
+    var(--malachite, #31d843) 50%,
+    var(--green, #22941a) 75%,
+    var(--black-forest, #293f14) 100%
   );
 }
 

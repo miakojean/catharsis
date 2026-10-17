@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 import uuid
+import re
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -36,3 +37,17 @@ class Customer(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    @property
+    def initials(self):
+        if not self.email:
+            return "??"
+        username_part = self.email.split('@')[0]
+        parts = [p for p in re.split(r'[._\-+]+', username_part) if p]
+        if len(parts) >= 2:
+            return f"{parts[0][0]}{parts[1][0]}".upper()
+        elif len(username_part) >= 2:
+            return username_part[:2].upper()
+        elif len(username_part) == 1:
+            return username_part.upper()
+        return "??"

@@ -15,10 +15,10 @@
       <!-- Main Dashboard Content Area -->
       <main class="dashboard-main-area">
         <!-- Top Header (Search, Notifications, Profile) -->
-        <DashboardHeader />
+          <DashboardHeader @add-site="isRegisterSiteModalOpen = true" />
 
         <!-- Grid of Dashboard Widgets -->
-        <div class="dashboard-grid">
+        <div v-if="projectStore.projects.length > 0" class="dashboard-grid">
           
           <!-- Row 1: Top Widgets -->
           <div class="grid-row row-top">
@@ -48,22 +48,33 @@
 
         </div>
 
-        <div class="">
+        <div v-else>
           <emptyChartState
-            title="No data yet"
-            description="Your data will appear here once you create or import your first records"
-            actionText="Add Data"
-            @action="() => { console.log('Action button clicked!') }"
+            v-if="projectStore.projects.length === 0"
+            title="Aucun site enregistré"
+            description="Enregistrez votre premier site pour préparer le suivi de son activité."
+            actionText="Enregistrer un site"
+            @action="isRegisterSiteModalOpen = true"
           />
         </div>
       </main>
     </div>
+
+    <RegisterSiteModal
+      v-if="isRegisterSiteModalOpen"
+      :is-loading="projectStore.isLoading"
+      :error-message="projectStore.message.errorMessage"
+      :created-project="createdProject"
+      @close="handleCloseRegisterSiteModal"
+      @submit="handleCreateProject"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import { useAnalyticsStore } from '~/stores/analyticsStore'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 import KpiMatrixCard from '~/components/dashboard/KpiMatrixCard.vue'
@@ -71,13 +82,35 @@ import HeatmapCard from '~/components/dashboard/HeatmapCard.vue'
 import ActiveUsersChart from '~/components/dashboard/ActiveUsersChart.vue'
 import SessionsDeviceCard from '~/components/dashboard/SessionsDeviceCard.vue'
 import emptyChartState from '~/components/dashboard/emptyChartState.vue'
+import RegisterSiteModal from '~/components/dashboard/RegisterSiteModal.vue'
 
-
-const projectStore = useProjectSiteStore();
+const projectStore = useProjectSiteStore()
+const analyticsStore = useAnalyticsStore()
+const isRegisterSiteModalOpen = ref(false)
+const createdProject = ref<import('~/stores/projectSiteStore').Project | null>(null)
 
 onMounted(async () => {
-  await projectStore.getProjects();
-});
+  await projectStore.getProjects()
+  if (projectStore.projects.length > 0) {
+    const defaultSiteId = projectStore.projects[0]?.site_id
+    await analyticsStore.fetchAnalytics({ site_id: defaultSiteId })
+  }
+})
+
+async function handleCreateProject(payload: { name: string }) {
+  const project = await projectStore.createProject(payload)
+  if (project) {
+    createdProject.value = project
+    await analyticsStore.fetchAnalytics({ site_id: project.site_id })
+  }
+}
+
+
+function handleCloseRegisterSiteModal() {
+  isRegisterSiteModalOpen.value = false
+  createdProject.value = null
+  projectStore.clearMessages()
+}
 
 // Theme toggle state (default light matching the screenshot)
 const isDark = ref(false)

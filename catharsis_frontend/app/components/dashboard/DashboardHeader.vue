@@ -6,6 +6,33 @@
     </div>
 
     <div class="header-actions">
+      <!-- Site selector dropdown if multiple projects exist -->
+      <div v-if="projectStore.projects.length > 0" class="site-picker">
+        <svg class="site-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <select
+          id="dashboard-site-select"
+          class="site-select"
+          :value="analyticsStore.selectedSiteId || projectStore.projects[0]?.site_id"
+          @change="onSiteSelect"
+          aria-label="Sélectionner un site web"
+        >
+          <option v-for="p in projectStore.projects" :key="p.id" :value="p.site_id">
+            {{ p.name }}
+          </option>
+        </select>
+      </div>
+
+      <button type="button" class="add-site-btn" @click="$emit('add-site')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" d="M12 5v14M5 12h14"></path>
+        </svg>
+        <span>Enregistrer un site</span>
+      </button>
+
       <!-- Search input -->
       <div class="search-bar">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -28,24 +55,33 @@
         <span class="unread-dot"></span>
       </button>
 
-      <!-- User Avatar -->
-      <div class="user-avatar-btn">
-        <img
-          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face"
-          alt="User Profile"
-          class="user-avatar-img"
-          :title="authStore.user?.email"
-        />
-      </div>
+      <ProfileButton />
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/authStore'
+import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import { useAnalyticsStore } from '~/stores/analyticsStore'
+import ProfileButton from '~/components/buttons/profileButton.vue'
+
 const authStore = useAuthStore()
-// Top Dashboard Header with Search, Notifications and Avatar
+const projectStore = useProjectSiteStore()
+const analyticsStore = useAnalyticsStore()
+
+defineEmits<{
+  (event: 'add-site'): void
+}>()
+
+function onSiteSelect(e: Event) {
+  const target = e.target as HTMLSelectElement
+  if (target && target.value) {
+    analyticsStore.setSite(target.value)
+  }
+}
 </script>
+
 
 <style scoped>
 .dashboard-header {
@@ -79,6 +115,78 @@ const authStore = useAuthStore()
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* Site Picker */
+.site-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background-color: var(--input-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 9999px;
+  padding: 0 0.85rem;
+  height: 40px;
+  color: var(--text-heading, #0f172a);
+  transition: all 0.15s ease;
+}
+
+.site-picker:hover {
+  border-color: var(--green, #22941a);
+}
+
+.site-icon {
+  color: var(--green, #22941a);
+  flex-shrink: 0;
+}
+
+.site-select {
+  border: none;
+  background: transparent;
+  color: var(--text-heading, #0f172a);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  padding-right: 0.25rem;
+}
+
+
+.add-site-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 1px solid var(--black-forest, #293f14);
+  border-radius: 9999px;
+  background: var(--black-forest, #293f14);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.add-site-btn:hover {
+  transform: translateY(-1px);
+  background: var(--green, #22941a);
+  border-color: var(--green, #22941a);
+}
+
+.add-site-btn:focus-visible {
+  outline: 3px solid rgb(34 148 26 / 22%);
+  outline-offset: 2px;
+}
+
+.add-site-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 /* Search bar */
@@ -148,30 +256,26 @@ const authStore = useAuthStore()
   border: 1.5px solid var(--card-bg, #ffffff);
 }
 
-/* User avatar */
-.user-avatar-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 9999px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1.5px solid var(--border-color, #e2e8f0);
-  transition: transform 0.15s ease;
-}
-
-.user-avatar-btn:hover {
-  transform: scale(1.05);
-}
-
-.user-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 @media (max-width: 640px) {
   .search-input {
-    width: 180px;
+    width: 140px;
+  }
+
+  .header-actions {
+    gap: 0.5rem;
+  }
+
+  .add-site-btn {
+    width: 40px;
+    padding: 0;
+  }
+
+  .add-site-btn span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
   }
 }
 </style>

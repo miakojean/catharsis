@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenBlacklistSerializer
 from .serializers import CustomerSerializer
 from .models import Customer
 from django.contrib.auth import authenticate
@@ -87,9 +88,29 @@ class CustomerLoginView(APIView):
                 "refresh_token": refresh_token,
                 "user": {
                     "id": str(user.id),
-                    "email": user.email
+                    "email": user.email,
+                    "initials": user.initials
                 }
             },
             status=status.HTTP_200_OK
         )
         return response        
+
+
+class CustomerMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = CustomerSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CustomerLogoutView(APIView):
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = TokenBlacklistSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+

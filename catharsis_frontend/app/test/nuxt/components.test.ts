@@ -23,8 +23,9 @@ describe('registrationForm', () => {
     const inputs = wrapper.findAll('.base-input-stub')
     expect(inputs.length).toBe(3)
     expect(inputs[0].attributes('data-label')).toBe('Email')
-    expect(inputs[1].attributes('data-label')).toBe('Username')
+    expect(inputs[1].attributes('data-label')).toBe('Username/entreprise')
     expect(inputs[2].attributes('data-label')).toBe('Mot de passe')
+
 
     expect(wrapper.find('.main-button-stub').exists()).toBe(true)
   })

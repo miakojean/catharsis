@@ -6,10 +6,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
             </svg>
         </div>
-        <h4>Aucun site enregistré</h4>
-        <p>Vos sites enregistrés apparaîtront ici</p>
+        <h4>{{ title }}</h4>
+        <p>{{ description }}</p>
         <div class="button-wrapper">
-            <mainButton label="Enregistrer un site" @click="$emit('register-site')" />
+            <mainButton :label="actionText" @click="$emit('action')" />
         </div>
   </div>
 </template>
@@ -20,13 +20,29 @@ import mainButton from '../buttons/mainButton.vue';
 export default {
     components: {
         mainButton
-    }
+    },
+    props: {
+        title: {
+            type: String,
+            default: 'Aucun site enregistré'
+        },
+        description: {
+            type: String,
+            default: 'Vos sites enregistrés apparaîtront ici'
+        },
+        actionText: {
+            type: String,
+            default: 'Enregistrer un site'
+        }
+    },
+    emits: ['action']
 }
 </script>
 
 <style scoped>
 .empty-state {
-    height: 100vh;
+    min-height: 360px;
+    height: calc(100vh - 170px);
     position: relative;
     overflow: hidden;
     

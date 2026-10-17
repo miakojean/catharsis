@@ -1,11 +1,11 @@
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 # Modules imports
-from .serializers import ProjectSerializer, SessionSerializer
+from .serializers import ProjectSerializer, SessionSerializer, EventSerializer
 from .models import Project, Session, Event
 
 # Create your views here.
@@ -222,3 +222,32 @@ class AnalyticsDashboardView(APIView):
             "devices": devices
         }, status=status.HTTP_200_OK)
 
+class TrackEventView(APIView):
+    """
+    Endpoint public appelé par le tracker (navigator.sendBeacon ou fetch).
+    Ne nécessite pas d'authentification.
+    """
+    permission_classes = [AllowAny] 
+
+    def post(self, request):
+        serializer = EventSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            # Extraction de l'adresse IP depuis les en-têtes HTTP
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip = request.META.get('REMOTE_ADDR')
+
+            # Extraction du User-Agent (navigateur, OS, appareil)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+            # Sauvegarde en ajoutant les données capturées par le backend
+            serializer.save(
+                ip_address=ip, 
+                user_agent=user_agent
+            )
+            return Response({"status": "success"}, status=status.HTTP_201_CREATED)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

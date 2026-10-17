@@ -32,3 +32,15 @@ class SessionSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = [
+            'site_id', 
+            'session_id', 
+            'event_type', 
+            'url', 
+            'client_timestamp', 
+            'properties'
+        ]

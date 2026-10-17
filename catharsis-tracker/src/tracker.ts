@@ -14,7 +14,7 @@ interface EventPayload {
   site_id: string;
   session_id: string;
   event_type: string;
-  timestamp: string; // Heure exacte au format ISO
+  client_timestamp: string; // Heure exacte au format ISO
   url: string;       // Page sur laquelle l'événement s'est produit
   [key: string]: unknown; // Permet d'ajouter n'importe quelle autre donnée dynamique (tag, id, etc.)
 }
@@ -89,7 +89,7 @@ interface Window {
       site_id: config.siteId,
       session_id: sessionId,
       event_type: eventType,
-      timestamp: new Date().toISOString(), // Horodatage précis
+      client_timestamp: new Date().toISOString(), // Horodatage précis
       url: window.location.href,           // URL active au moment de l'événement
       ...eventData,                        // Fusionne les données supplémentaires passées en paramètre
     };
@@ -100,9 +100,37 @@ interface Window {
     }
 
     // Si le mode dryRun n'est PAS activé, on procède à l'envoi réel
+    // Si le mode dryRun n'est PAS activé, on procède à l'envoi réel
     if (!config.dryRun) {
-      // TODO: Ici tu ajouteras fetch() ou navigator.sendBeacon() plus tard
-      // pour envoyer 'payload' vers ton serveur de base de données.
+      // L'URL de ton endpoint API Django (à adapter selon ta route locale ou de production)
+      const endpoint = 'http://localhost:8000/event/track-event/'; 
+
+      // On prépare les données au format JSON
+      const payloadString = JSON.stringify(payload);
+
+      try {
+        // On privilégie sendBeacon qui garantit l'envoi lors de la fermeture de la page
+        if (navigator.sendBeacon) {
+          // sendBeacon avec du JSON nécessite la création d'un Blob
+          const blob = new Blob([payloadString], { type: 'application/json' });
+          navigator.sendBeacon(endpoint, blob);
+        } else {
+          // Fallback (solution de secours) avec fetch pour les navigateurs très anciens
+          fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: payloadString,
+            // keepalive permet à la requête fetch de survivre au déchargement de la page
+            keepalive: true 
+          });
+        }
+      } catch (error) {
+        if (config.debug) {
+          console.error('[Catharsis] Erreur lors de l\'envoi de l\'événement:', error);
+        }
+      }
     }
   }
 

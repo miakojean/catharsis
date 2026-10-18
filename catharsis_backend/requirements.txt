@@ -11,6 +11,7 @@ psycopg2-binary  # OK pour le développement, pour la production préférez psyc
 djangorestframework
 django-cors-headers  # Important pour les API frontend
 djangorestframework-simplejwt # Pour l'authentification
+geoip2 # Géolocalisation locale des IP avec une base MaxMind
 # Media
 Pillow  # Essentiel pour le traitement d'images
 

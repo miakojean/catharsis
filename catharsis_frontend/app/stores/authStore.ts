@@ -95,31 +95,21 @@ export const useAuthStore = defineStore('auth', () => {
     message.value.successMessage = '';
 
     try {
+      await $api('/account/csrf/', { method: 'GET' });
       const response: any = await $api('/account/login/', {
         method: 'POST',
         body: payload
       });
 
-      if (response && response.access_token) {
-        const tokenCookie = useCookie('token');
-        tokenCookie.value = response.access_token;
-        const refreshTokenCookie = useCookie<string | null>('refresh_token');
-        refreshTokenCookie.value = response.refresh_token || null;
-        
-        if (response.user) {
-          user.value = response.user;
-          userCookie.value = response.user;
-        } else {
-          user.value.email = payload.email;
-          userCookie.value = { email: payload.email };
-        }
-
-        message.value.successMessage = "Connexion réussie !";
-        return true;
-      } else {
-        message.value.successMessage = "Connexion réussie !";
-        return true;
+      if (!response?.user) {
+        message.value.errorMessage = "La réponse de connexion est invalide.";
+        return false;
       }
+
+      user.value = response.user;
+      userCookie.value = response.user;
+      message.value.successMessage = "Connexion réussie !";
+      return true;
     } catch (err: any) {
       message.value.errorMessage = err?.data?.error || "Identifiants invalides ou erreur de connexion";
       return false;
@@ -133,16 +123,8 @@ export const useAuthStore = defineStore('auth', () => {
     message.value.errorMessage = '';
     message.value.successMessage = '';
 
-    const tokenCookie = useCookie<string | null>('token');
-    const refreshTokenCookie = useCookie<string | null>('refresh_token');
-
     try {
-      if (refreshTokenCookie.value) {
-        await $api('/account/logout/', {
-          method: 'POST',
-          body: { refresh: refreshTokenCookie.value }
-        });
-      }
+      await $api('/account/logout/', { method: 'POST' });
 
       message.value.successMessage = 'Vous êtes déconnecté.';
       return true;
@@ -154,8 +136,6 @@ export const useAuthStore = defineStore('auth', () => {
         'La session locale a été fermée, mais le jeton n’a pas pu être révoqué côté serveur.';
       return false;
     } finally {
-      tokenCookie.value = null;
-      refreshTokenCookie.value = null;
       userCookie.value = null;
       user.value = {
         id: '',
@@ -168,9 +148,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchCurrentUser() {
-    const tokenCookie = useCookie<string | null>('token');
-    if (!tokenCookie.value) return null;
-
     try {
       const response: any = await $api('/account/me/', {
         method: 'GET'

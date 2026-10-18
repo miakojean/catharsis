@@ -37,18 +37,36 @@
 
         <!-- Customization -->
         <li class="nav-item">
-          <button type="button" class="nav-link nav-btn" @click="activeMenu = activeMenu === 'customization' ? '' : 'customization'">
+          <button
+            type="button"
+            class="nav-link nav-btn"
+            aria-controls="users-submenu"
+            :aria-expanded="activeMenu === 'users'"
+            @click="activeMenu = activeMenu === 'users' ? '' : 'users'"
+          >
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span class="nav-label">Customization</span>
-            <svg class="chevron-icon" :class="{ 'rotated': activeMenu === 'customization' }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <span class="nav-label">Mes utilisateurs</span>
+            <svg class="chevron-icon" :class="{ 'rotated': activeMenu === 'users' }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
+          <ul v-if="activeMenu === 'users'" id="users-submenu" class="nav-submenu">
+            <li v-for="item in userRoutes" :key="item.path">
+              <NuxtLink
+                :to="item.path"
+                class="nav-sublink"
+                :class="{ active: route.path === item.path }"
+                :aria-current="route.path === item.path ? 'page' : undefined"
+              >
+                {{ item.label }}
+              </NuxtLink>
+            </li>
+          </ul>
         </li>
 
         <!-- Realtime -->
@@ -174,7 +192,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 defineProps<{
   isDark?: boolean
@@ -184,7 +203,20 @@ defineEmits<{
   (e: 'theme-change', isDark: boolean): void
 }>()
 
-const activeMenu = ref('')
+const route = useRoute()
+const activeMenu = ref(route.path.startsWith('/dashboard/users') ? 'users' : '')
+const userRoutes = [
+  { label: 'Pays d’origine', path: '/dashboard/users/countries' },
+  { label: 'Sources d’acquisition', path: '/dashboard/users/sources' },
+  { label: 'Appareils', path: '/dashboard/users/devices' },
+  { label: 'Navigateurs', path: '/dashboard/users/browsers' },
+  { label: 'Systèmes d’exploitation', path: '/dashboard/users/operating-systems' },
+  { label: 'Pages visitées', path: '/dashboard/users/pages' },
+]
+
+watch(() => route.path, (path) => {
+  if (path.startsWith('/dashboard/users')) activeMenu.value = 'users'
+})
 </script>
 
 <style scoped>
@@ -309,6 +341,38 @@ const activeMenu = ref('')
 
 .chevron-icon.rotated {
   transform: rotate(180deg);
+}
+
+.nav-submenu {
+  list-style: none;
+  margin: 0.25rem 0 0.35rem 1.9rem;
+  padding: 0 0 0 0.6rem;
+  border-left: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.nav-sublink {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  color: var(--nav-text, #64748b);
+  font-size: 0.8rem;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.nav-sublink:hover {
+  background-color: var(--nav-hover-bg, #f8fafc);
+  color: var(--text-heading, #0f172a);
+}
+
+.nav-sublink.active {
+  background-color: var(--nav-active-bg, #eff6ff);
+  color: #2563eb;
+  font-weight: 600;
 }
 
 .nav-section-title {

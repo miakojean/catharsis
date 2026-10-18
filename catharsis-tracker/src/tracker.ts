@@ -16,7 +16,7 @@ interface EventPayload {
   event_type: string;
   client_timestamp: string; // Heure exacte au format ISO
   url: string;       // Page sur laquelle l'événement s'est produit
-  [key: string]: unknown; // Permet d'ajouter n'importe quelle autre donnée dynamique (tag, id, etc.)
+  properties: Record<string, unknown>;
 }
 
 // Étend l'objet global "Window" du navigateur pour y déclarer notre tracker
@@ -91,7 +91,7 @@ interface Window {
       event_type: eventType,
       client_timestamp: new Date().toISOString(), // Horodatage précis
       url: window.location.href,           // URL active au moment de l'événement
-      ...eventData,                        // Fusionne les données supplémentaires passées en paramètre
+      properties: eventData,
     };
 
     // Si le mode debug est activé (data-debug="true"), on affiche l'action dans la console
@@ -139,7 +139,7 @@ interface Window {
 
   // Une fois que tout est prêt, on envoie automatiquement un événement "page_view"
   // pour indiquer que l'utilisateur vient d'afficher ou recharger la page
-  sendEvent('page_view');
+  sendEvent('page_view', { referrer: document.referrer });
 
   // Ajout d'écouteurs d'événements globaux pour traquer les actions des utilisateurs.
   // Exemple : on écoute tous les clics sur la page entière.

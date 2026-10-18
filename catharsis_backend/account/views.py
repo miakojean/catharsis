@@ -7,6 +7,52 @@ from rest_framework_simplejwt.serializers import TokenBlacklistSerializer
 from .serializers import CustomerSerializer
 from .models import Customer
 from django.contrib.auth import authenticate
+from django.conf import settings
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
+
+
+def _set_auth_cookies(response, access_token, refresh_token):
+    response.set_cookie(
+        settings.REST_AUTH['JWT_AUTH_COOKIE'],
+        access_token,
+        max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+        httponly=True,
+        secure=settings.REST_AUTH['JWT_AUTH_SECURE'],
+        samesite=settings.REST_AUTH['JWT_AUTH_SAMESITE'],
+        path='/',
+    )
+    response.set_cookie(
+        settings.REST_AUTH['JWT_AUTH_REFRESH_COOKIE'],
+        refresh_token,
+        max_age=int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()),
+        httponly=True,
+        secure=settings.REST_AUTH['JWT_AUTH_SECURE'],
+        samesite=settings.REST_AUTH['JWT_AUTH_SAMESITE'],
+        path='/',
+    )
+    return response
+
+
+def _clear_auth_cookies(response):
+    for cookie_name in (
+        settings.REST_AUTH['JWT_AUTH_COOKIE'],
+        settings.REST_AUTH['JWT_AUTH_REFRESH_COOKIE'],
+    ):
+        response.delete_cookie(
+            cookie_name,
+            path='/',
+            samesite=settings.REST_AUTH['JWT_AUTH_SAMESITE'],
+        )
+    return response
+
+
+class CustomerCsrfView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({'csrfToken': get_token(request)})
 
 
 class CustomerDetailView(APIView):
@@ -37,6 +83,7 @@ class CustomerLoginView(APIView):
 
     permission_classes = [AllowAny]
 
+    @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         password = request.data.get('password')
@@ -79,13 +126,9 @@ class CustomerLoginView(APIView):
         refresh_token = str(refresh)
         
     
-        # Définir les cookies HttpOnly pour les tokens
-
         response = Response(
             {
                 "message": "Login successful",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
                 "user": {
                     "id": str(user.id),
                     "email": user.email,
@@ -94,7 +137,7 @@ class CustomerLoginView(APIView):
             },
             status=status.HTTP_200_OK
         )
-        return response        
+        return _set_auth_cookies(response, access_token, refresh_token)
 
 
 class CustomerMeView(APIView):
@@ -109,8 +152,12 @@ class CustomerLogoutView(APIView):
 
     permission_classes = [AllowAny]
 
+    @method_decorator(csrf_protect)
     def post(self, request):
-        serializer = TokenBlacklistSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(status=status.HTTP_205_RESET_CONTENT)
+        refresh_token = request.COOKIES.get(settings.REST_AUTH['JWT_AUTH_REFRESH_COOKIE'])
+        if not refresh_token:
+            return _clear_auth_cookies(Response(status=status.HTTP_205_RESET_CONTENT))
 
+        serializer = TokenBlacklistSerializer(data={'refresh': refresh_token})
+        serializer.is_valid(raise_exception=True)
+        return _clear_auth_cookies(Response(status=status.HTTP_205_RESET_CONTENT))

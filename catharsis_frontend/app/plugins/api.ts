@@ -1,20 +1,26 @@
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
-  const token = useCookie('token') // Ne fonctionnera que si le cookie n'est PAS HttpOnly
+  const csrfCookie = useCookie<string | null>('csrftoken')
+  let csrfHeaderToken = csrfCookie.value
 
   const api = $fetch.create({
     baseURL: config.public.apiBase || 'http://localhost:8000',
-
-    // ✅ INDISPENSABLE : Autorise l'échange de cookies (cart_session_id, tokens...)
     credentials: 'include',
 
     onRequest({ options }) {
-      // ✅ Garde ceci uniquement si tes tokens ne sont pas en HttpOnly
-      if (token.value) {
+      const csrfToken = csrfHeaderToken || csrfCookie.value
+      if (csrfToken) {
         options.headers = {
           ...options.headers,
-          Authorization: `Bearer ${token.value}`,
+          'X-CSRFToken': csrfToken,
         }
+      }
+    },
+
+    onResponse({ response }) {
+      if (response.url.includes('/account/csrf/')) {
+        const data = response._data as { csrfToken?: string } | undefined
+        csrfHeaderToken = data?.csrfToken || csrfHeaderToken
       }
     },
 

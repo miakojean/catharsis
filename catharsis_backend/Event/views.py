@@ -3,6 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from pathlib import Path
+from urllib.parse import urlparse
+from django.conf import settings
 
 # Modules imports
 from .serializers import ProjectSerializer, SessionSerializer, EventSerializer
@@ -221,6 +224,159 @@ class AnalyticsDashboardView(APIView):
             "active_users": timeline,
             "devices": devices
         }, status=status.HTTP_200_OK)
+
+
+class AudienceReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    DIMENSIONS = {
+        'countries',
+        'sources',
+        'devices',
+        'browsers',
+        'operating-systems',
+        'pages',
+    }
+
+    @staticmethod
+    def _device(user_agent):
+        agent = (user_agent or '').lower()
+        if 'ipad' in agent or 'tablet' in agent:
+            return 'Tablette'
+        if 'mobile' in agent or 'android' in agent or 'iphone' in agent:
+            return 'Mobile'
+        return 'Ordinateur'
+
+    @staticmethod
+    def _browser(user_agent):
+        agent = (user_agent or '').lower()
+        if 'edg/' in agent:
+            return 'Microsoft Edge'
+        if 'opr/' in agent or 'opera' in agent:
+            return 'Opera'
+        if 'firefox/' in agent:
+            return 'Firefox'
+        if 'chrome/' in agent or 'crios/' in agent:
+            return 'Google Chrome'
+        if 'safari/' in agent:
+            return 'Safari'
+        return 'Inconnu'
+
+    @staticmethod
+    def _operating_system(user_agent):
+        agent = (user_agent or '').lower()
+        if 'windows' in agent:
+            return 'Windows'
+        if 'android' in agent:
+            return 'Android'
+        if 'iphone' in agent or 'ipad' in agent or 'ios' in agent:
+            return 'iOS'
+        if 'mac os' in agent or 'macintosh' in agent:
+            return 'macOS'
+        if 'linux' in agent:
+            return 'Linux'
+        return 'Inconnu'
+
+    def get(self, request):
+        dimension = request.query_params.get('dimension', '')
+        if dimension not in self.DIMENSIONS:
+            return Response(
+                {'error': 'Dimension invalide.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        projects = Project.objects.filter(customer=request.user)
+        site_id = request.query_params.get('site_id')
+        if site_id:
+            projects = projects.filter(site_id=site_id)
+            if not projects.exists():
+                return Response(
+                    {'error': 'Site introuvable.'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        site_ids = list(projects.values_list('site_id', flat=True))
+        events = Event.objects.filter(site_id__in=site_ids).values(
+            'site_id',
+            'session_id',
+            'ip_address',
+            'user_agent',
+            'url',
+            'properties',
+        )
+
+        country_reader = None
+        available = True
+        message = ''
+        if dimension == 'countries':
+            database_path = settings.GEOIP_COUNTRY_DB
+            if not database_path:
+                available = False
+                message = (
+                    'Configurez GEOIP_COUNTRY_DB avec le chemin de votre base '
+                    'locale GeoLite2-Country.mmdb pour afficher les pays.'
+                )
+            elif not Path(database_path).is_file():
+                return Response(
+                    {'error': 'La base GeoIP locale configurée est introuvable.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            else:
+                from geoip2.database import Reader
+                from geoip2.errors import AddressNotFoundError
+
+                country_reader = Reader(database_path)
+
+        session_groups = {}
+        try:
+            for event in events.iterator():
+                if dimension == 'countries':
+                    if country_reader is None:
+                        continue
+                    ip_address = event['ip_address']
+                    try:
+                        country = country_reader.country(ip_address).country.name if ip_address else None
+                    except AddressNotFoundError:
+                        country = None
+                    label = country or 'Pays inconnu'
+                elif dimension == 'sources':
+                    properties = event['properties'] or {}
+                    referrer = properties.get('referrer', '')
+                    hostname = urlparse(referrer).hostname if referrer else None
+                    label = hostname or 'Accès direct / inconnu'
+                elif dimension == 'devices':
+                    label = self._device(event['user_agent'])
+                elif dimension == 'browsers':
+                    label = self._browser(event['user_agent'])
+                elif dimension == 'operating-systems':
+                    label = self._operating_system(event['user_agent'])
+                else:
+                    label = urlparse(event['url']).path or '/'
+
+                session_groups.setdefault(label, set()).add(
+                    (event['site_id'], event['session_id'])
+                )
+        finally:
+            if country_reader is not None:
+                country_reader.close()
+
+        rows = [
+            {'label': label, 'visitors': len(session_ids)}
+            for label, session_ids in session_groups.items()
+        ]
+        rows.sort(key=lambda row: (-row['visitors'], row['label'].casefold()))
+
+        return Response({
+            'dimension': dimension,
+            'available': available,
+            'message': message,
+            'total_visitors': len({
+                (event['site_id'], event['session_id'])
+                for event in events
+            }),
+            'results': rows[:100],
+        }, status=status.HTTP_200_OK)
+
 
 class TrackEventView(APIView):
     """

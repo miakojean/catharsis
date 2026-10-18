@@ -1,4 +1,5 @@
 from django.test import TestCase
+from decouple import config
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -20,8 +21,7 @@ class CustomerLogoutTests(TestCase):
 
         response = self.client.post(
             '/account/logout/',
-            {'refresh': str(refresh)},
-            format='json',
+            HTTP_COOKIE=f'refresh={refresh}',
         )
 
         self.assertEqual(response.status_code, 205)
@@ -30,7 +30,7 @@ class CustomerLogoutTests(TestCase):
     def test_logout_rejects_missing_refresh_token(self):
         response = self.client.post('/account/logout/', {}, format='json')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 205)
 
 
 class CustomerInitialsTests(TestCase):
@@ -77,9 +77,18 @@ class CustomerMeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data['email'], config('TEST_ANALYTICS_USER_EMAIL'))
-        self.assertEqual(data['initials'], 'AW')
+        self.assertEqual(data['initials'], self.customer.initials)
         self.assertEqual(data['phone_number'], '+33612345678')
         self.assertNotIn('password', data)
+
+    def test_me_authenticates_from_access_cookie(self):
+        refresh = RefreshToken.for_user(self.customer)
+        self.client.cookies['access'] = str(refresh.access_token)
+
+        response = self.client.get('/account/me/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['email'], config('TEST_ANALYTICS_USER_EMAIL'))
 
     def test_login_returns_initials(self):
         response = self.client.post(
@@ -91,5 +100,27 @@ class CustomerMeViewTests(TestCase):
         data = response.json()
         self.assertIn('user', data)
         self.assertEqual(data['user']['email'], config('TEST_ANALYTICS_USER_EMAIL'))
-        self.assertEqual(data['user']['initials'], 'AW')
+        self.assertEqual(data['user']['initials'], self.customer.initials)
+        self.assertNotIn('access_token', data)
+        self.assertNotIn('refresh_token', data)
+        self.assertTrue(response.cookies['access']['httponly'])
+        self.assertTrue(response.cookies['refresh']['httponly'])
 
+    def test_login_requires_csrf_token(self):
+        client = APIClient(enforce_csrf_checks=True)
+        csrf_response = client.get('/account/csrf/')
+        login_data = {
+            'email': config('TEST_ANALYTICS_USER_EMAIL'),
+            'password': config('TEST_ANALYTICS_USER_PASSWORD'),
+        }
+
+        rejected_response = client.post('/account/login/', login_data, format='json')
+        accepted_response = client.post(
+            '/account/login/',
+            login_data,
+            format='json',
+            HTTP_X_CSRFTOKEN=csrf_response.json()['csrfToken'],
+        )
+
+        self.assertEqual(rejected_response.status_code, 403)
+        self.assertEqual(accepted_response.status_code, 200)

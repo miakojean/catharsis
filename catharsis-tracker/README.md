@@ -18,7 +18,7 @@ Depuis le tableau de bord, l’utilisateur choisit **Enregistrer un site**. Une 
 
 Les sites enregistrés sont ensuite chargés dans l’espace de l’utilisateur. Le modèle backend stocke pour le moment le nom du projet, pas l’URL de son domaine.
 
-La génération et l’enregistrement du projet sont opérationnels. L’affichage du code d’installation et la réception des événements sont des étapes distinctes qui restent à mettre en place.
+La génération et l’enregistrement du projet sont opérationnels. L’affichage du code d’installation reste à mettre en place ; l’endpoint de réception des événements est disponible.
 
 ### 4. Installer le script — quand le projet et l’hébergement du tracker seront prêts
 
@@ -35,16 +35,18 @@ Le code d’installation prendra cette forme, avec les valeurs fournies par Cath
 
 ### 5. Consulter les données
 
-Une fois la collecte et la réception des événements raccordées, l’utilisateur pourra retrouver les données de son site dans le tableau de bord. Tant qu’aucun événement ne remonte, celui-ci affiche un état vide.
+Après installation du script sur le site suivi, l’utilisateur peut consulter les données reçues dans le tableau de bord. Tant qu’aucun événement ne remonte, les rapports affichent un état vide.
 
 ## État actuel de la collecte
 
-Le script lit `data-site-id` et crée un identifiant de session conservé dans `sessionStorage`. Il prépare automatiquement les événements suivants :
+Le script lit `data-site-id` et crée un identifiant de session conservé dans `sessionStorage`. Il envoie automatiquement les événements suivants à `POST /event/track-event/` :
 
 - `page_view` au chargement de la page ;
 - `click` lors d’un clic ;
 - `form_submit` lors de l’envoi d’un formulaire ;
 - `scroll_bottom_reached` lorsque le visiteur arrive près du bas de la page.
+
+La vue `page_view` transmet aussi le domaine référent quand le navigateur le fournit. Les autres propriétés d’événement sont envoyées dans le champ JSON `properties`.
 
 Les intégrations peuvent aussi appeler l’API du navigateur :
 
@@ -54,7 +56,7 @@ window.Catharsis?.trackEvent('inscription_terminee', {
 })
 ```
 
-**Important : le code prépare actuellement les événements mais ne les envoie pas au backend.** L’envoi réseau est encore indiqué comme TODO dans `src/tracker.ts`. Le endpoint actuel `/event/` gère les projets et ne constitue pas encore une API de réception des événements du tracker. Il faut donc implémenter et configurer cette réception avant de considérer la collecte comme active.
+Le tableau de bord « Mes utilisateurs » regroupe les visiteurs par source, appareil, navigateur, système d’exploitation et page visitée. Les adresses IP sont conservées côté backend et ne sont pas exposées dans ces rapports. Les pays sont résolus localement : installez `geoip2`, fournissez une base MaxMind GeoLite2 Country et définissez `GEOIP_COUNTRY_DB` sur le chemin du fichier `.mmdb` côté backend. Sans cette configuration, le rapport des pays indique explicitement que les données sont indisponibles.
 
 ## Développement
 

@@ -3,14 +3,14 @@
 
 @import "typography.css";
 
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: "Inter Tight", sans-serif;
 }
 
-:root{
+:root {
     --black-forest: #293f14ff;
     --green: #22941a;
     --bright-fern: #38a700ff;
@@ -18,7 +18,50 @@
     --spring-green: #3eff8bff;
     --my-black: #4b4a4a;
 }
-html{
+
+.dashboard-root {
+    --bg-main: #f8fafc;
+    --card-bg: #ffffff;
+    --sidebar-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-heading: #0f172a;
+    --text-muted: #64748b;
+    --input-bg: #ffffff;
+    --icon-bg: #eff6ff;
+    --toggle-bg: #f1f5f9;
+    --nav-text: #64748b;
+    --nav-hover-bg: #f8fafc;
+    --nav-active-bg: #eff6ff;
+    --grid-color: #f1f5f9;
+    --gauge-track: #f1f5f9;
+
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--bg-main);
+    color: var(--text-heading);
+    font-family: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dark theme overrides */
+.dashboard-root.dark-theme {
+    --bg-main: #0b0f19;
+    --card-bg: #111827;
+    --sidebar-bg: #0f172a;
+    --border-color: #1e293b;
+    --text-heading: #f8fafc;
+    --text-muted: #94a3b8;
+    --input-bg: #1e293b;
+    --icon-bg: #1e293b;
+    --toggle-bg: #1e293b;
+    --nav-text: #94a3b8;
+    --nav-hover-bg: #1e293b;
+    --nav-active-bg: #1e3a8a;
+    --grid-color: #1e293b;
+    --gauge-track: #1e293b;
+}
+
+html {
     background: #fcfbfb;
 }
 
@@ -30,7 +73,7 @@ html{
     align-items: center;
 }
 
-form{
+form {
     width: 100%;
     max-width: 400px;
     display: flex;
@@ -42,21 +85,17 @@ form{
     scrollbar-width: none;
 }
 
-.form-body, .form-header, .form-footer{
+.form-body,
+.form-header,
+.form-footer {
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-@media(min-width:768px) {
+@media(min-width:768px) {}
 
-}
+@media(min-width:1024px) {}
 
-@media(min-width:1024px) {
-
-}
-
-@media(min-width:1280px){
-
-}
+@media(min-width:1280px) {}

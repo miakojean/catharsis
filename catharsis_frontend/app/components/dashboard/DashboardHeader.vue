@@ -1,7 +1,7 @@
 <template>
   <header class="dashboard-header">
     <div class="header-titles">
-      <h1 class="header-title">Dashboard</h1>
+      <h1 class="header-title">{{title || 'Dashboard'}}</h1>
       <p v-if="authStore.user?.email" class="header-subtitle">Bienvenue, {{ authStore.user.email }}</p>
     </div>
 
@@ -70,6 +70,10 @@ const authStore = useAuthStore()
 const projectStore = useProjectSiteStore()
 const analyticsStore = useAnalyticsStore()
 
+defineProps<{
+  title?: string,
+}>()
+
 defineEmits<{
   (event: 'add-site'): void
 }>()
@@ -98,8 +102,8 @@ function onSiteSelect(e: Event) {
 }
 
 .header-title {
-  font-size: 1.625rem;
-  font-weight: 700;
+  font-size: 1.3rem;
+  font-weight: 500;
   color: var(--text-heading, #0f172a);
   letter-spacing: -0.02em;
   margin: 0;

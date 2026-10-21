@@ -2,7 +2,7 @@
   <div class="users-page">
     <Head>
       <Title>{{ reportTitle }} — Catharsis Analytics</Title>
-      <Meta name="description" content="Analysez l’origine et les caractéristiques de votre audience." />
+      <Meta name="description" content="Analysez l'origine et les caractéristiques de votre audience." />
     </Head>
 
     <div class="users-layout">
@@ -43,19 +43,37 @@
             Aucune donnée disponible pour cette période.
           </p>
 
-          <ol v-else-if="report?.results.length" class="result-list">
-            <li v-for="(item, index) in report.results" :key="item.label" class="result-row">
-              <span class="rank">{{ index + 1 }}</span>
-              <span class="result-label">{{ item.label }}</span>
-              <span class="result-count">{{ item.visitors }}</span>
-              <div class="bar-track">
-                <span
-                  class="bar-fill"
-                  :style="{ width: `${Math.max(2, (item.visitors / maxVisitors) * 100)}%` }"
-                />
-              </div>
-            </li>
-          </ol>
+          <!-- Tableau inspiré de la maquette -->
+          <div v-else-if="report?.results.length" class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-icon"></th>
+                  <th>{{ reportDescription.charAt(0).toUpperCase() + reportDescription.slice(1) }}</th>
+                  <th class="text-right">Visiteurs</th>
+                  <th class="text-right">Proportion</th>
+                  <th class="text-center">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in report.results" :key="item.label">
+                  <td class="col-icon">
+                    <span class="row-icon">...</span>
+                  </td>
+                  <td class="font-medium">{{ item.label }}</td>
+                  <td class="text-right font-mono">{{ item.visitors }}</td>
+                  <td class="text-right font-mono">
+                    {{ ((item.visitors / (report.total_visitors || 1)) * 100).toFixed(1) }}%
+                  </td>
+                  <td class="text-center">
+                    <span class="status-pill" :class="getBadgeTheme(index)">
+                      {{ getBadgeLabel(index) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>
@@ -102,7 +120,6 @@ const reportConfig: Record<string, { title: string; description: string }> = {
 const dimension = computed(() => String(route.params.dimension || ''))
 const reportTitle = computed(() => reportConfig[dimension.value]?.title || 'Audience')
 const reportDescription = computed(() => reportConfig[dimension.value]?.description || 'catégorie')
-const maxVisitors = computed(() => Math.max(1, ...(report.value?.results.map(item => item.visitors) || [1])))
 
 async function loadReport() {
   if (!reportConfig[dimension.value] || !selectedSiteId.value) return
@@ -121,6 +138,17 @@ async function loadReport() {
   }
 }
 
+// Fonctions utilitaires pour simuler les badges de la maquette
+const getBadgeTheme = (index: number) => {
+  const themes = ['theme-pending', 'theme-ready', 'theme-arrived', 'theme-draft', 'theme-canceled']
+  return themes[index % themes.length]
+}
+
+const getBadgeLabel = (index: number) => {
+  const labels = ['En cours', 'Prêt', 'Terminé', 'Brouillon', 'Annulé']
+  return labels[index % labels.length]
+}
+
 onMounted(async () => {
   await projectStore.getProjects()
   selectedSiteId.value = projectStore.projects[0]?.site_id || ''
@@ -136,6 +164,7 @@ watch(dimension, () => {
 </script>
 
 <style scoped>
+/* Conservez vos styles généraux existants ici... */
 .users-page {
   min-height: 100vh;
   background: #f8fafc;
@@ -236,98 +265,99 @@ h1 {
   font-size: 1rem;
 }
 
-.loading-label,
-.empty-state {
-  color: #64748b;
-  font-size: 0.9rem;
-}
-
-.empty-state {
-  padding: 2rem 0;
-  text-align: center;
-}
-
-.notice {
-  padding: 0.9rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid #bfdbfe;
+/* Nouveaux styles pour le tableau */
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #f1f5f9;
   border-radius: 0.75rem;
-  background: #eff6ff;
-  color: #1e40af;
-  font-size: 0.9rem;
 }
 
-.notice.error {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.result-list {
-  list-style: none;
-}
-
-.result-row {
-  display: grid;
-  grid-template-columns: 2rem minmax(8rem, 1fr) 4rem minmax(6rem, 1fr);
-  align-items: center;
-  gap: 0.8rem;
-  min-height: 3.25rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.rank {
-  color: #94a3b8;
-  font-size: 0.8rem;
-}
-
-.result-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
   white-space: nowrap;
-  font-size: 0.9rem;
 }
 
-.result-count {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+.data-table thead {
+  background-color: #f8fafc;
+  color: #475569;
   font-weight: 600;
 }
 
-.bar-track {
-  height: 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #f1f5f9;
+.data-table th,
+.data-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #2563eb;
+.data-table tbody tr:last-child td {
+  border-bottom: none;
 }
+
+.data-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.font-medium {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #64748b;
+}
+
+/* Icône de ligne factice (comme sur la maquette) */
+.row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.25rem;
+  background: #eff6ff;
+  color: #60a5fa;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+/* Badges de statut */
+.status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.theme-pending { background: #fef9c3; color: #a16207; }
+.theme-ready { background: #e0e7ff; color: #4338ca; }
+.theme-arrived { background: #dcfce7; color: #15803d; }
+.theme-draft { background: #f3e8ff; color: #7e22ce; }
+.theme-canceled { background: #fee2e2; color: #b91c1c; }
 
 @media (max-width: 768px) {
   .users-layout {
     flex-direction: column;
   }
-
   .users-main {
     padding: 1.25rem 1rem;
   }
-
   .page-header {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .result-row {
-    grid-template-columns: 1.5rem minmax(5rem, 1fr) 3rem;
-  }
-
-  .bar-track {
-    display: none;
   }
 }
 </style>

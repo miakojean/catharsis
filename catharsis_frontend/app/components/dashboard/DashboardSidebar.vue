@@ -204,14 +204,14 @@ defineEmits<{
 }>()
 
 const route = useRoute()
-const activeMenu = ref(route.path.startsWith('/dashboard/users') ? 'users' : '')
+const activeMenu = ref(route.path.startsWith('/dashboard/myusers') ? 'users' : '')
 const userRoutes = [
-  { label: 'Pays d’origine', path: '/dashboard/users/countries' },
-  { label: 'Sources d’acquisition', path: '/dashboard/users/sources' },
-  { label: 'Appareils', path: '/dashboard/users/devices' },
-  { label: 'Navigateurs', path: '/dashboard/users/browsers' },
-  { label: 'Systèmes d’exploitation', path: '/dashboard/users/operating-systems' },
-  { label: 'Pages visitées', path: '/dashboard/users/pages' },
+  { label: 'Pays d’origine', path: '/dashboard/myusers/countries' },
+  { label: 'Sources d’acquisition', path: '/dashboard/myusers/sources' },
+  { label: 'Appareils', path: '/dashboard/myusers/devices' },
+  { label: 'Navigateurs', path: '/dashboard/myusers/browsers' },
+  { label: 'Systèmes d’exploitation', path: '/dashboard/myusers/operating-systems' },
+  { label: 'Pages visitées', path: '/dashboard/myusers/pages' },
 ]
 
 watch(() => route.path, (path) => {

@@ -14,38 +14,18 @@
     <p v-if="globalError" class="notice error" role="alert">{{ globalError }}</p>
 
     <div class="cards-grid" aria-live="polite">
-      <article v-for="card in cards" :key="card.key" class="dimension-card">
-        <div class="card-heading">
-          <h3>{{ card.title }}</h3>
-          <span v-if="isLoading" class="loading-label">Chargement…</span>
-        </div>
 
-        <p v-if="card.error" class="card-note error">{{ card.error }}</p>
-        <p v-else-if="!isLoading && !card.available" class="card-note">{{ card.message }}</p>
-        <p v-else-if="!isLoading && card.rows.length === 0" class="card-note">
-          Aucune donnée pour le moment.
-        </p>
-
-        <ul v-else class="rows">
-          <li v-for="row in card.rows" :key="row.label" class="row">
-            <div class="row-text">
-              <span class="row-label" :title="row.label">{{ row.label }}</span>
-              <span class="row-value">
-                {{ row.visitors }}
-                <small>{{ row.percent.toFixed(1) }}%</small>
-              </span>
-            </div>
-            <div class="bar" role="presentation">
-              <div class="bar-fill" :style="{ width: `${row.percent}%` }" />
-            </div>
-          </li>
-        </ul>
-
-        <NuxtLink :to="card.to" class="detail-button">
-          Voir le détail
-          <span v-if="card.total > 0" class="detail-count">{{ card.total }}</span>
-        </NuxtLink>
-      </article>
+      <graph-stats-card 
+        v-for="card in cards" 
+        :key="card.key"
+        :title="card.title"
+        :description="card.message"
+        :total="totalVisitors"
+        :rows="card.rows"
+        :is-loading="isLoading"
+        :to="card.to"
+      />
+      
     </div>
   </section>
 </template>
@@ -53,6 +33,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+
+import graphStatsCard from '../cards/graphStatsCard.vue';
 
 interface AudienceResult {
   label: string

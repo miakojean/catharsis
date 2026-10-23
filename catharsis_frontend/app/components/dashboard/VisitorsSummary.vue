@@ -1,13 +1,14 @@
 <template>
   <section class="visitors-summary" aria-labelledby="visitors-summary-title">
+    
     <header class="summary-header">
       <div>
-        <h2 id="visitors-summary-title">Profil des visiteurs</h2>
-        <p>Les principales caractéristiques de votre audience, en un coup d’œil.</p>
+        <p>Bref résumé des activités de vos utilisateurs</p>
       </div>
       <div class="total-box">
         <span>Visiteurs uniques</span>
         <strong>{{ totalVisitors }}</strong>
+        <base-select/>
       </div>
     </header>
 
@@ -35,6 +36,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
 
 import graphStatsCard from '../cards/graphStatsCard.vue';
+import BaseSelect from '../BaseInput/BaseSelect.vue';
 
 interface AudienceResult {
   label: string
@@ -190,9 +192,8 @@ watch(
 
 .total-box {
   display: flex;
-  flex-direction: column;
   align-items: flex-end;
-  gap: 0.15rem;
+  gap: 1rem;
   color: #64748b;
   font-size: 0.85rem;
 }

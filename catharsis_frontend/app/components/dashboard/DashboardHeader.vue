@@ -94,6 +94,10 @@ function onSiteSelect(e: Event) {
   justify-content: space-between;
   width: 100%;
   margin-bottom: 1.5rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+  padding: 1rem;
+  border-radius: 6px;
 }
 
 .header-titles {

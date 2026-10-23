@@ -42,7 +42,7 @@
             class="nav-link nav-btn"
             aria-controls="users-submenu"
             :aria-expanded="activeMenu === 'users'"
-            @click="activeMenu = activeMenu === 'users' ? '' : 'users'"
+            @click="()=>router.push('/dashboard/myusers')"
           >
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"></rect>
@@ -51,7 +51,7 @@
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
             <span class="nav-label">Mes utilisateurs</span>
-            <svg class="chevron-icon" :class="{ 'rotated': activeMenu === 'users' }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg @click="activeMenu = activeMenu === 'users' ? '' : 'users'" class="chevron-icon" :class="{ 'rotated': activeMenu === 'users' }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
@@ -193,7 +193,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { routerKey, useRoute, useRouter } from 'vue-router'
 
 defineProps<{
   isDark?: boolean
@@ -204,6 +204,7 @@ defineEmits<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const activeMenu = ref(route.path.startsWith('/dashboard/myusers') ? 'users' : '')
 const userRoutes = [
   { label: 'Pays d’origine', path: '/dashboard/myusers/countries' },

@@ -6,9 +6,9 @@
         <p>Bref résumé des activités de vos utilisateurs</p>
       </div>
       <div class="total-box">
+        <periodFilter v-model="selectedPeriod" />
         <span>Visiteurs uniques</span>
         <strong>{{ totalVisitors }}</strong>
-        <base-select/>
       </div>
     </header>
 
@@ -34,22 +34,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import { useAnalyticsStore, type AudienceReport } from '~/stores/analyticsStore'
 
 import graphStatsCard from '../cards/graphStatsCard.vue';
-import BaseSelect from '../BaseInput/BaseSelect.vue';
+import periodFilter from '../Tools/periodFilter.vue';
 
-interface AudienceResult {
-  label: string
-  visitors: number
-}
-
-interface AudienceReport {
-  dimension: string
-  available: boolean
-  message: string
-  total_visitors: number
-  results: AudienceResult[]
-}
+import type { PeriodValue } from '../Tools/periodFilter.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -72,10 +62,11 @@ const DIMENSIONS = [
   { key: 'pages', title: 'Pages visitées' },
 ]
 
-const { $api } = useNuxtApp()
 const projectStore = useProjectSiteStore()
+const analyticsStore = useAnalyticsStore()
 
 const fallbackSiteId = ref('')
+const selectedPeriod = ref<PeriodValue | undefined>()
 const reports = ref<Record<string, AudienceReport | null>>({})
 const errors = ref<Record<string, string>>({})
 const isLoading = ref(false)
@@ -113,7 +104,8 @@ const cards = computed(() =>
 )
 
 async function loadSummary() {
-  if (!activeSiteId.value) return
+  const period = selectedPeriod.value
+  if (!activeSiteId.value || !period?.start || !period.end) return
 
   const token = ++requestToken
   isLoading.value = true
@@ -121,8 +113,10 @@ async function loadSummary() {
 
   const settled = await Promise.allSettled(
     DIMENSIONS.map(({ key }) =>
-      $api<AudienceReport>('/event/audience/', {
-        query: { dimension: key, site_id: activeSiteId.value },
+      analyticsStore.fetchAudienceReport(key, {
+        site_id: activeSiteId.value,
+        start_date: period.start,
+        end_date: period.end,
       }),
     ),
   )
@@ -153,13 +147,11 @@ onMounted(async () => {
   }
   if (!activeSiteId.value) {
     globalError.value = 'Enregistrez un site pour consulter les données de votre audience.'
-    return
   }
-  await loadSummary()
 })
 
 watch(
-  () => props.siteId,
+  [activeSiteId, selectedPeriod],
   () => void loadSummary(),
 )
 </script>

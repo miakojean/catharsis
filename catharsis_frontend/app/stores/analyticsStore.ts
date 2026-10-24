@@ -51,6 +51,19 @@ export interface AnalyticsPayload {
   devices: DevicesData
 }
 
+export interface AudienceResult {
+  label: string
+  visitors: number
+}
+
+export interface AudienceReport {
+  dimension: string
+  available: boolean
+  message: string
+  total_visitors: number
+  results: AudienceResult[]
+}
+
 export const useAnalyticsStore = defineStore('analytics', () => {
   const { $api } = useNuxtApp()
 
@@ -143,6 +156,15 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     await fetchAnalytics({ site_id: siteId })
   }
 
+  async function fetchAudienceReport(
+    dimension: string,
+    params: { site_id: string; start_date: string; end_date: string },
+  ) {
+    return await $api<AudienceReport>('/event/audience/', {
+      query: { dimension, ...params },
+    })
+  }
+
   return {
     isLoading,
     errorMessage,
@@ -153,6 +175,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     activeUsers,
     devices,
     fetchAnalytics,
+    fetchAudienceReport,
     setPeriod,
     setSite
   }

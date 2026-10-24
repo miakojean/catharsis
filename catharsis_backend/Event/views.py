@@ -11,6 +11,7 @@ from .utils import (
     build_dashboard,
     get_user_projects,
     normalize_period,
+    parse_audience_date_range,
     record_event,
 )
 
@@ -43,7 +44,11 @@ class AudienceReportView(APIView):
     def get(self, request):
         projects = get_user_projects(request.user, request.query_params.get('site_id'))
         dimension = request.query_params.get('dimension', '')
-        return Response(build_audience_report(projects, dimension))
+        start_date, end_date = parse_audience_date_range(
+            request.query_params.get('start_date'),
+            request.query_params.get('end_date'),
+        )
+        return Response(build_audience_report(projects, dimension, start_date, end_date))
 
 
 class TrackEventView(APIView):

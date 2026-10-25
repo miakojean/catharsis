@@ -1,5 +1,6 @@
 <template>
     <article class="stat-cards" :class="{ 'is-loading': isLoading }">
+        
         <div class="stat-cards-header">
             <h3>{{ title }}</h3>
             <!-- Affiche un message personnalisé ou une description par défaut -->
@@ -21,11 +22,11 @@
             </div>
 
             <!-- Légende générée depuis les données API à droite -->
-            <div class="right-side">
+            <div class="right-side w-full">
                 <p v-if="!rows || rows.length === 0" class="empty-note">
                     Aucune donnée
                 </p>
-                <ul v-else class="legend-list">
+                <ul v-else class="legend-list w-full">
                     <li v-for="(row, index) in rows" :key="row.label" :title="row.label">
                         <span class="legend-color" :style="{ background: legendDot(index) }"></span>
                         <span class="legend-label">{{ row.label }}</span>
@@ -36,7 +37,7 @@
         </div>
 
         <div class="stat-cards-footer">
-            <button class="stat-cards-button flex gap-2">
+            <button type="button" class="stat-cards-button flex gap-2" @click="$emit('goTo', to)">
                 <span>Voir plus</span>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
                     <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm4.28 10.28a.75.75 0 0 0 0-1.06l-3-3a.75.75 0 1 0-1.06 1.06l1.72 1.72H8.25a.75.75 0 0 0 0 1.5h5.69l-1.72 1.72a.75.75 0 1 0 1.06 1.06l3-3Z" clip-rule="evenodd" />
@@ -48,6 +49,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router';
 
 interface RowData {
     label: string
@@ -68,8 +70,11 @@ const props = withDefaults(defineProps<{
     total: 0,
     rows: () => [],
     isLoading: false,
-    to: '/dashboard/users'
+    to: '/dashboard/myusers'
 })
+
+const emits = defineEmits(['goTo'])
+
 
 // Palette plus saturée : chaque segment reste bien distinct (plus de bleus délavés)
 const colors = ['#1d4ed8', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899']
@@ -329,7 +334,7 @@ button{
 }
 
 .stat-cards-button:hover{
-    transform: scale(1.05);
+    transform: translateY(-5px);
 }
 
 /* Respect des préférences d'accessibilité : pas d'inclinaison animée */
@@ -341,6 +346,33 @@ button{
 
     .stat-cards:hover .my-circle-chart {
         transform: none;
+    }
+}
+
+@media(min-width:768px){
+    
+    .stat-cards-body {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 1.5rem;
+        flex: 1;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+}
+
+@media(min-width:1280px){
+    
+    .stat-cards-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-around;
+        gap: 1.5rem;
+        flex: 1;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
     }
 }
 </style>

@@ -15,12 +15,21 @@
         <!-- Top Header (Search, Notifications, Profile) -->
         <DashboardHeader 
           title="mes utilisateurs"
-          @add-site="isRegisterUserModalOpen = true" 
+          @add-site="isRegisterSiteModalOpen = true" 
         />
 
         <!-- Résumé des caractéristiques des visiteurs -->
         <VisitorsSummary />
       </main>
+
+      <RegisterSiteModal 
+        v-if="isRegisterSiteModalOpen"
+        :is-loading="projectStore.isLoading"
+        :error-message="projectStore.message.errorMessage"
+        :created-project="createdProject"
+        @close="closeRegisterUserModal"
+        @submit="handleCreateProject"
+      />
     </div>
   </div>
 </template>
@@ -29,11 +38,15 @@
 import { ref, onMounted } from 'vue';
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue';
 import VisitorsSummary from '~/components/dashboard/VisitorsSummary.vue';
+import RegisterSiteModal from '~/components/modale/RegisterSiteModal.vue';
 
+import { useProjectSiteStore } from '#imports';
+import { useAnalyticsStore } from '#imports';
 export default{
   components:{
     DashboardSidebar,
-    VisitorsSummary
+    VisitorsSummary,
+    RegisterSiteModal
   },
   setup(){
     const isDark = ref(false)
@@ -42,22 +55,49 @@ export default{
       isDark.value = dark
     }
 
-    const isRegisterUserModalOpen = ref(false)
+    // Manage my modal
+    const createdProject = ref<import('~/stores/projectSiteStore').Project | null>(null)
+
+    const projectStore = useProjectSiteStore();
+    const analyticsStore = useAnalyticsStore();
+
+    const isRegisterSiteModalOpen = ref(false);
 
     const openRegisterUserModal = () => {
-      isRegisterUserModalOpen.value = true
+      isRegisterSiteModalOpen.value = true
     }
 
     const closeRegisterUserModal = () => {
-      isRegisterUserModalOpen.value = false
+      isRegisterSiteModalOpen.value = false
     }
 
+    async function handleCreateProject(payload: { name: string }) {
+      const project = await projectStore.createProject(payload)
+      if (project) {
+        createdProject.value = project
+        await analyticsStore.fetchAnalytics({ site_id: project.site_id })
+      }
+    }
+
+    onMounted(async () => {
+      await projectStore.getProjects()
+      if (projectStore.projects.length > 0) {
+        const defaultSiteId = projectStore.projects[0]?.site_id
+        await analyticsStore.fetchAnalytics({ site_id: defaultSiteId })
+      }
+    })
+
+
     return{
-        isDark,
-        handleThemeChange,
-        isRegisterUserModalOpen,
-        openRegisterUserModal,
-        closeRegisterUserModal
+      isDark,
+      handleThemeChange,
+      isRegisterSiteModalOpen,
+      openRegisterUserModal,
+      closeRegisterUserModal,
+      projectStore,
+      handleCreateProject,
+      createdProject,
+      analyticsStore
     }
   }
 }

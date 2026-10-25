@@ -66,13 +66,19 @@ def send(endpoint, payload, user_agent, ip):
         pass
 
 
-def simulate_session(endpoint, site_id, base_url, days):
+def simulate_session(endpoint, site_id, base_url, days, today_only=False):
     session_id = str(uuid.uuid4())
     user_agent, ip = weighted(USER_AGENTS), random.choice(IPS)
     referrer = weighted(REFERRERS)
-    moment = datetime.now(timezone.utc) - timedelta(
-        days=random.uniform(0, days), seconds=random.randint(0, 86400)
-    )
+    now = datetime.now(timezone.utc)
+    if today_only or days == 0:
+        start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        seconds_since_midnight = max(1.0, (now - start_of_today).total_seconds())
+        offset = random.uniform(0, seconds_since_midnight)
+        moment = now - timedelta(seconds=offset)
+    else:
+        offset = random.uniform(0, days * 86400)
+        moment = now - timedelta(seconds=offset)
 
     sent = 0
     for step in range(random.randint(1, 6)):
@@ -99,6 +105,7 @@ def main():
     parser.add_argument('--site-id', required=True)
     parser.add_argument('--sessions', type=int, default=100)
     parser.add_argument('--days', type=int, default=14, help="étalement des dates (jours)")
+    parser.add_argument('--today', action='store_true', help="générer des événements uniquement pour aujourd'hui")
     parser.add_argument('--endpoint', default='http://localhost:8000/event/track-event/')
     parser.add_argument('--base-url', default='https://catharsis.test', help="domaine des pages simulées")
     parser.add_argument('--seed', type=int, help="graine aléatoire (résultats reproductibles)")
@@ -110,7 +117,7 @@ def main():
     events = failures = 0
     for _ in range(args.sessions):
         try:
-            events += simulate_session(args.endpoint, args.site_id, args.base_url, args.days)
+            events += simulate_session(args.endpoint, args.site_id, args.base_url, args.days, today_only=args.today)
         except urllib.error.HTTPError as error:
             failures += 1
             if failures <= 3:

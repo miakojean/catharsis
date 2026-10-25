@@ -199,8 +199,25 @@ def record_event(serializer, request):
 # --------------------------------------------------------------------------- #
 def build_dashboard(projects, period):
     site_ids = list(projects.values_list('site_id', flat=True))
-    sessions = Session.objects.filter(project__in=projects)
-    events = Event.objects.filter(site_id__in=site_ids)
+    
+    # 1. Définition de la date de début selon la période demandée
+    now = timezone.now()
+    if period == 'day':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == 'year':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:  # Par défaut : 'month'
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # 2. Application du filtre sur les requêtes
+    sessions = Session.objects.filter(
+        project__in=projects, 
+        started_at__gte=start_date
+    )
+    events = Event.objects.filter(
+        site_id__in=site_ids, 
+        client_timestamp__gte=start_date
+    )
 
     total_sessions = sessions.count()
     visitors = sessions.values('session_id').distinct().count()
@@ -342,6 +359,25 @@ def _country_resolver(database_path):
         yield resolve
 
 
+def _group_sources(events):
+    """Pour chaque session, attribue sa source d'acquisition (le premier référent externe, sinon direct)."""
+    session_sources = {}
+    visitors = set()
+    for event in events.iterator():
+        key = (event['site_id'], event['session_id'])
+        visitors.add(key)
+        referrer = (event['properties'] or {}).get('referrer')
+        hostname = _safe_hostname(referrer)
+        if hostname and key not in session_sources:
+            session_sources[key] = hostname
+
+    groups = {}
+    for key in visitors:
+        source = session_sources.get(key, DIRECT_SOURCE)
+        groups.setdefault(source, set()).add(key)
+    return groups, len(visitors)
+
+
 def _group_sessions(events, resolver=None):
     """Retourne ({label: {sessions}}, nombre total de visiteurs) en un seul passage."""
     groups, visitors = {}, set()
@@ -378,6 +414,8 @@ def build_audience_report(projects, dimension, start_date=None, end_date=None):
         else:
             available, message = False, GEOIP_NOT_CONFIGURED
             groups, total = _group_sessions(events)
+    elif dimension == 'sources':
+        groups, total = _group_sources(events)
     else:
         groups, total = _group_sessions(events, LABEL_RESOLVERS[dimension])
 

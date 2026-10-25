@@ -216,7 +216,7 @@ const userRoutes = [
 ]
 
 watch(() => route.path, (path) => {
-  if (path.startsWith('/dashboard/users')) activeMenu.value = 'users'
+  if (path.startsWith('/dashboard/myusers')) activeMenu.value = 'users'
 })
 </script>
 

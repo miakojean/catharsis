@@ -82,7 +82,7 @@ import HeatmapCard from '~/components/dashboard/HeatmapCard.vue'
 import ActiveUsersChart from '~/components/dashboard/ActiveUsersChart.vue'
 import SessionsDeviceCard from '~/components/dashboard/SessionsDeviceCard.vue'
 import emptyChartState from '~/components/dashboard/emptyChartState.vue'
-import RegisterSiteModal from '~/components/dashboard/RegisterSiteModal.vue'
+import RegisterSiteModal from '~/components/modale/RegisterSiteModal.vue'
 
 const projectStore = useProjectSiteStore()
 const analyticsStore = useAnalyticsStore()

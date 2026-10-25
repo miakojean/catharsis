@@ -9,21 +9,8 @@
       <DashboardSidebar :is-dark="false" />
 
       <main class="users-main">
-        <header class="page-header">
-          <div>
-            <NuxtLink to="/dashboard" class="back-link">← Tableau de bord</NuxtLink>
-            <h1>{{ reportTitle }}</h1>
-            <p>Répartition des visiteurs uniques par {{ reportDescription }}.</p>
-          </div>
-          <label v-if="projects.length" class="site-picker">
-            <span>Site</span>
-            <select v-model="selectedSiteId" aria-label="Sélectionner un site" @change="loadReport">
-              <option v-for="project in projects" :key="project.site_id" :value="project.site_id">
-                {{ project.name }}
-              </option>
-            </select>
-          </label>
-        </header>
+
+        <DashboardHeader :title="reportTitle"/>
 
         <div class="summary-card">
           <span class="summary-label">Visiteurs suivis</span>
@@ -35,7 +22,7 @@
 
         <section class="report-card" aria-live="polite">
           <div class="report-heading">
-            <h2>{{ reportTitle }}</h2>
+            <h2>Tableau de {{ reportTitle }}</h2>
             <span v-if="isLoading" class="loading-label">Chargement…</span>
           </div>
 
@@ -85,6 +72,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 
 interface AudienceResult {
   label: string
@@ -151,14 +139,17 @@ const getBadgeLabel = (index: number) => {
 
 onMounted(async () => {
   await projectStore.getProjects()
-  selectedSiteId.value = projectStore.projects[0]?.site_id || ''
+  selectedSiteId.value = (route.query.site_id as string) || projectStore.projects[0]?.site_id || ''
   if (!selectedSiteId.value) {
     errorMessage.value = 'Enregistrez un site pour consulter les données de votre audience.'
   }
   await loadReport()
 })
 
-watch(dimension, () => {
+watch([dimension, () => route.query.site_id], () => {
+  if (route.query.site_id) {
+    selectedSiteId.value = String(route.query.site_id)
+  }
   if (selectedSiteId.value) void loadReport()
 })
 </script>
@@ -211,8 +202,7 @@ h1 {
 .summary-card,
 .report-card {
   border: 1px solid #e2e8f0;
-  border-radius: 0.9rem;
-  background: white;
+  background: none;
 }
 
 .site-picker {
@@ -269,7 +259,6 @@ h1 {
 .table-wrapper {
   overflow-x: auto;
   border: 1px solid #f1f5f9;
-  border-radius: 0.75rem;
 }
 
 .data-table {

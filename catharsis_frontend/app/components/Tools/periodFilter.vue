@@ -68,7 +68,12 @@ const emit = defineEmits<{
 }>()
 
 /* ---------- helpers ---------- */
-const toISO = (d: Date) => d.toISOString().slice(0, 10)
+const toISO = (d: Date) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const addDays = (d: Date, n: number) => {
   const r = new Date(d)
@@ -83,7 +88,7 @@ interface Preset { key: string; label: string; range: () => [string, string] }
 
 const presets: Preset[] = [
   {
-    key: 'today',
+    key: 'day', // Modifié (anciennement 'today')
     label: "Aujourd'hui",
     range: () => [toISO(today()), toISO(today())],
   },
@@ -106,7 +111,7 @@ const presets: Preset[] = [
     range: () => [toISO(addDays(today(), -29)), toISO(today())],
   },
   {
-    key: 'thisMonth',
+    key: 'month', // Modifié (anciennement 'thisMonth')
     label: 'Ce mois-ci',
     range: () => {
       const d = today()
@@ -126,7 +131,7 @@ const presets: Preset[] = [
     },
   },
   {
-    key: 'thisYear',
+    key: 'year', // Modifié (anciennement 'thisYear')
     label: 'Cette année',
     range: () => {
       const y = today().getFullYear()
@@ -250,7 +255,7 @@ onMounted(() => {
 .dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
+  right: 0;
   z-index: 100;
   width: 280px;
   background: #fff;

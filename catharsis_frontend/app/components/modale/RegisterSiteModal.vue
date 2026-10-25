@@ -70,8 +70,8 @@
             </div>
 
             <p class="tracker-notice">
-              La configuration et l’envoi des données du tracker ne sont pas encore activés. Conservez cet identifiant
-              pour l’étape d’installation.
+              La configuration et l'envoi des données du tracker ne sont pas encore activés. Conservez cet identifiant
+              pour l'étape d'installation.
             </p>
 
             <button class="done-button" type="button" @click="close">Terminer</button>

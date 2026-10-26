@@ -26,6 +26,20 @@
         </select>
       </div>
 
+      <button
+        v-if="projectStore.projects.length > 0"
+        type="button"
+        class="view-snippet-btn"
+        title="Voir les instructions et le code d'installation"
+        @click="$emit('view-snippet')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <span>Code de suivi</span>
+      </button>
+
       <button type="button" class="add-site-btn" @click="$emit('add-site')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" d="M12 5v14M5 12h14"></path>
@@ -76,6 +90,7 @@ defineProps<{
 
 defineEmits<{
   (event: 'add-site'): void
+  (event: 'view-snippet'): void
 }>()
 
 function onSiteSelect(e: Event) {
@@ -156,6 +171,38 @@ function onSiteSelect(e: Event) {
   padding-right: 0.25rem;
 }
 
+
+.view-snippet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 9999px;
+  background: var(--input-bg, #ffffff);
+  color: var(--text-heading, #0f172a);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.view-snippet-btn:hover {
+  border-color: var(--green, #22941a);
+  color: var(--green, #22941a);
+  background: #f0fdf4;
+}
+
+.view-snippet-btn svg {
+  width: 15px;
+  height: 15px;
+  color: var(--green, #22941a);
+  flex: 0 0 auto;
+}
 
 .add-site-btn {
   display: inline-flex;

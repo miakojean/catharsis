@@ -48,33 +48,15 @@
             <span class="form-eyebrow">PROJET CRÉÉ</span>
             <h3>{{ createdProject.name }} est enregistré</h3>
             <p class="success-description">
-              Votre identifiant de site est prêt. Vous en aurez besoin pour configurer le tracker sur votre site.
+              Installez le tracker ci-dessous sur votre site pour commencer à collecter des statistiques d'audience en temps réel.
             </p>
 
-            <div class="site-id-card">
-              <span class="site-id-label">Identifiant du site</span>
-              <div class="site-id-value">
-                <code>{{ createdProject.site_id }}</code>
-                <button type="button" class="copy-button" @click="copySiteId(createdProject.site_id)">
-                  <svg v-if="!copied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                    <rect x="8" y="8" width="12" height="12" rx="2"></rect>
-                    <path stroke-linecap="round" d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6"></path>
-                  </svg>
-                  {{ copied ? 'Copié' : 'Copier' }}
-                </button>
-              </div>
-              <p v-if="copyError" class="copy-error" role="alert">{{ copyError }}</p>
-            </div>
+            <IntegrationSnippet
+              :site-id="createdProject.site_id"
+              :site-name="createdProject.name"
+            />
 
-            <p class="tracker-notice">
-              La configuration et l’envoi des données du tracker ne sont pas encore activés. Conservez cet identifiant
-              pour l’étape d’installation.
-            </p>
-
-            <button class="done-button" type="button" @click="close">Terminer</button>
+            <button class="done-button" type="button" @click="close">Accéder au tableau de bord</button>
           </section>
         </div>
       </div>
@@ -85,6 +67,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import projectRegistrationForm from '~/components/forms/projectRegistrationForm.vue'
+import IntegrationSnippet from '~/components/dashboard/IntegrationSnippet.vue'
 import type { Project } from '~/stores/projectSiteStore'
 
 withDefaults(
@@ -145,8 +128,8 @@ async function copySiteId(projectId: string) {
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
   margin: 0;
-  width: min(100% - 2rem, 520px);
-  max-width: 520px;
+  width: min(100% - 2rem, 640px);
+  max-width: 640px;
   max-height: min(90vh, 760px);
   padding: 0;
   overflow: auto;

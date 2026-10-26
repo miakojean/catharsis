@@ -1,17 +1,21 @@
-"""Logique métier de l'app analytics.
-
-Les vues se contentent de valider la requête, d'appeler une fonction d'ici
-et de renvoyer la Response.
+"""
+    Logique métier de l'app analytics.
+    Les vues se contentent de valider la requête, d'appeler une fonction d'ici
+    et de renvoyer la Response.
 """
 from collections import Counter
 from contextlib import contextmanager
+from datetime import datetime, time, timedelta
 from pathlib import Path
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count
 from django.db.models.functions import ExtractHour, ExtractWeekDay
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework.exceptions import APIException, NotFound, ValidationError
 
 from .models import Event, Project, Session
@@ -68,7 +72,7 @@ TIMELINE_PRESETS = {  # période -> (labels, ratios du total de sessions, peak_l
     'day': (
         ['00h', '04h', '08h', '12h', '16h', '20h', '23h'],
         [0.1, 0.05, 0.2, 0.35, 0.2, 0.08, 0.02],
-        'Aujourd’hui',
+        'Aujourd\'hui',
     ),
     'month': (
         ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août'],
@@ -99,6 +103,28 @@ def format_number(value, sep=' '):
 def normalize_period(raw):
     period = (raw or DEFAULT_PERIOD).lower()
     return period if period in PERIODS else DEFAULT_PERIOD
+
+
+def parse_audience_date_range(raw_start, raw_end):
+    """Validate the optional, all-or-nothing date range used by audience reports."""
+    if not raw_start and not raw_end:
+        return None, None
+    if not raw_start or not raw_end:
+        raise ValidationError({'date_range': 'start_date et end_date doivent être fournis ensemble.'})
+
+    date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+    if not date_pattern.fullmatch(raw_start) or not date_pattern.fullmatch(raw_end):
+        raise ValidationError({'date_range': 'Les dates doivent respecter le format YYYY-MM-DD.'})
+
+    try:
+        start_date, end_date = parse_date(raw_start), parse_date(raw_end)
+    except ValueError as error:
+        raise ValidationError({'date_range': 'Une ou plusieurs dates sont invalides.'}) from error
+    if start_date is None or end_date is None:
+        raise ValidationError({'date_range': 'Une ou plusieurs dates sont invalides.'})
+    if start_date > end_date:
+        raise ValidationError({'date_range': 'start_date doit précéder ou égaler end_date.'})
+    return start_date, end_date
 
 
 def get_user_projects(user, site_id=None):
@@ -173,8 +199,25 @@ def record_event(serializer, request):
 # --------------------------------------------------------------------------- #
 def build_dashboard(projects, period):
     site_ids = list(projects.values_list('site_id', flat=True))
-    sessions = Session.objects.filter(project__in=projects)
-    events = Event.objects.filter(site_id__in=site_ids)
+    
+    # 1. Définition de la date de début selon la période demandée
+    now = timezone.now()
+    if period == 'day':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == 'year':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:  # Par défaut : 'month'
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # 2. Application du filtre sur les requêtes
+    sessions = Session.objects.filter(
+        project__in=projects, 
+        started_at__gte=start_date
+    )
+    events = Event.objects.filter(
+        site_id__in=site_ids, 
+        client_timestamp__gte=start_date
+    )
 
     total_sessions = sessions.count()
     visitors = sessions.values('session_id').distinct().count()
@@ -316,6 +359,25 @@ def _country_resolver(database_path):
         yield resolve
 
 
+def _group_sources(events):
+    """Pour chaque session, attribue sa source d'acquisition (le premier référent externe, sinon direct)."""
+    session_sources = {}
+    visitors = set()
+    for event in events.iterator():
+        key = (event['site_id'], event['session_id'])
+        visitors.add(key)
+        referrer = (event['properties'] or {}).get('referrer')
+        hostname = _safe_hostname(referrer)
+        if hostname and key not in session_sources:
+            session_sources[key] = hostname
+
+    groups = {}
+    for key in visitors:
+        source = session_sources.get(key, DIRECT_SOURCE)
+        groups.setdefault(source, set()).add(key)
+    return groups, len(visitors)
+
+
 def _group_sessions(events, resolver=None):
     """Retourne ({label: {sessions}}, nombre total de visiteurs) en un seul passage."""
     groups, visitors = {}, set()
@@ -327,14 +389,20 @@ def _group_sessions(events, resolver=None):
     return groups, len(visitors)
 
 
-def build_audience_report(projects, dimension):
+def build_audience_report(projects, dimension, start_date=None, end_date=None):
     if dimension not in AUDIENCE_DIMENSIONS:
         raise ValidationError({'dimension': 'Dimension invalide.'})
 
-    events = (
-        Event.objects.filter(site_id__in=projects.values_list('site_id', flat=True))
-        .order_by()  # évite le tri Meta.ordering inutile ici
-        .values('site_id', 'session_id', 'ip_address', 'user_agent', 'url', 'properties')
+    event_queryset = Event.objects.filter(site_id__in=projects.values_list('site_id', flat=True))
+    if start_date is not None and end_date is not None:
+        start_at = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_at = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+        event_queryset = event_queryset.filter(
+            client_timestamp__gte=start_at,
+            client_timestamp__lt=end_at,
+        )
+    events = event_queryset.order_by().values(
+        'site_id', 'session_id', 'ip_address', 'user_agent', 'url', 'properties',
     )
 
     available, message = True, ''
@@ -346,6 +414,8 @@ def build_audience_report(projects, dimension):
         else:
             available, message = False, GEOIP_NOT_CONFIGURED
             groups, total = _group_sessions(events)
+    elif dimension == 'sources':
+        groups, total = _group_sources(events)
     else:
         groups, total = _group_sessions(events, LABEL_RESOLVERS[dimension])
 

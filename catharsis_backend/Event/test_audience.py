@@ -1,4 +1,5 @@
 from decouple import config
+from datetime import datetime
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -69,6 +70,56 @@ class AudienceReportTests(TestCase):
         self.assertEqual(response.json()['results'], [
             {'label': 'search.example', 'visitors': 1},
         ])
+
+    def test_audience_report_filters_full_inclusive_date_range(self):
+        timestamps = [
+            ('before-range', datetime(2024, 1, 9, 23, 59, 59), 'Desktop'),
+            ('start-day', datetime(2024, 1, 10, 0, 0, 0), 'Mobile'),
+            ('end-day', datetime(2024, 1, 11, 23, 59, 59), 'Desktop'),
+            ('after-range', datetime(2024, 1, 12, 0, 0, 0), 'Mobile'),
+        ]
+        agents = {
+            'Desktop': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0',
+            'Mobile': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile',
+        }
+        for session_id, timestamp, device in timestamps:
+            Event.objects.create(
+                site_id=self.project.site_id,
+                session_id=session_id,
+                event_type='page_view',
+                url='https://example.com/home',
+                client_timestamp=timezone.make_aware(timestamp),
+                user_agent=agents[device],
+            )
+
+        response = self.client.get('/event/audience/', {
+            'dimension': 'devices',
+            'site_id': self.project.site_id,
+            'start_date': '2024-01-10',
+            'end_date': '2024-01-11',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['total_visitors'], 2)
+        self.assertEqual(response.json()['results'], [
+            {'label': 'Mobile', 'visitors': 1},
+            {'label': 'Ordinateur', 'visitors': 1},
+        ])
+
+    def test_audience_report_rejects_invalid_date_ranges(self):
+        invalid_ranges = [
+            {'start_date': '2024-01-01'},
+            {'start_date': '01-01-2024', 'end_date': '2024-01-02'},
+            {'start_date': '2024-02-30', 'end_date': '2024-03-01'},
+            {'start_date': '2024-01-02', 'end_date': '2024-01-01'},
+        ]
+        for date_range in invalid_ranges:
+            with self.subTest(date_range=date_range):
+                response = self.client.get('/event/audience/', {
+                    'dimension': 'devices',
+                    **date_range,
+                })
+                self.assertEqual(response.status_code, 400)
 
     def test_country_report_explains_missing_local_database(self):
         response = self.client.get(

@@ -1,11 +1,13 @@
 <template>
+  
   <section class="visitors-summary" aria-labelledby="visitors-summary-title">
+    
     <header class="summary-header">
       <div>
-        <h2 id="visitors-summary-title">Profil des visiteurs</h2>
-        <p>Les principales caractéristiques de votre audience, en un coup d’œil.</p>
+        <p>Bref résumé des activités de vos utilisateurs</p>
       </div>
       <div class="total-box">
+        <periodFilter v-model="selectedPeriod" />
         <span>Visiteurs uniques</span>
         <strong>{{ totalVisitors }}</strong>
       </div>
@@ -24,30 +26,25 @@
         :rows="card.rows"
         :is-loading="isLoading"
         :to="card.to"
+        @go-to="goTo(card.to)"
       />
       
     </div>
   </section>
+
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter, type RouteLocationRaw } from 'vue-router'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import { useAnalyticsStore, type AudienceReport } from '~/stores/analyticsStore'
 
 import graphStatsCard from '../cards/graphStatsCard.vue';
+import periodFilter from '../Tools/periodFilter.vue';
 
-interface AudienceResult {
-  label: string
-  visitors: number
-}
+import type { PeriodValue } from '../Tools/periodFilter.vue'
 
-interface AudienceReport {
-  dimension: string
-  available: boolean
-  message: string
-  total_visitors: number
-  results: AudienceResult[]
-}
 
 const props = withDefaults(
   defineProps<{
@@ -58,29 +55,36 @@ const props = withDefaults(
     /** Chemin de la page de détail (sans le slash final), suivi de /:dimension. */
     detailBasePath?: string
   }>(),
-  { siteId: '', limit: 5, detailBasePath: '/dashboard/users' },
+  { siteId: '', limit: 5, detailBasePath: '/dashboard/myusers' },
 )
 
+const router = useRouter();
+
+function goTo(to: RouteLocationRaw){
+    router.push(to);
+}
+
 const DIMENSIONS = [
-  { key: 'countries', title: 'Pays d’origine' },
-  { key: 'sources', title: 'Sources d’acquisition' },
+  { key: 'countries', title: 'Pays d\'origine' },
+  { key: 'sources', title: 'Sources d\'acquisition' },
   { key: 'devices', title: 'Appareils' },
   { key: 'browsers', title: 'Navigateurs' },
-  { key: 'operating-systems', title: 'Systèmes d’exploitation' },
+  { key: 'operating-systems', title: 'Systèmes d\'exploitation' },
   { key: 'pages', title: 'Pages visitées' },
 ]
 
-const { $api } = useNuxtApp()
 const projectStore = useProjectSiteStore()
+const analyticsStore = useAnalyticsStore()
 
 const fallbackSiteId = ref('')
+const selectedPeriod = ref<PeriodValue | undefined>()
 const reports = ref<Record<string, AudienceReport | null>>({})
 const errors = ref<Record<string, string>>({})
 const isLoading = ref(false)
 const globalError = ref('')
 let requestToken = 0 // ignore les réponses d'un chargement dépassé
 
-const activeSiteId = computed(() => props.siteId || fallbackSiteId.value)
+const activeSiteId = computed(() => props.siteId || analyticsStore.selectedSiteId || fallbackSiteId.value)
 
 const totalVisitors = computed(
   () => Object.values(reports.value).find((report) => report)?.total_visitors ?? 0,
@@ -111,7 +115,8 @@ const cards = computed(() =>
 )
 
 async function loadSummary() {
-  if (!activeSiteId.value) return
+  const period = selectedPeriod.value
+  if (!activeSiteId.value || !period?.start || !period.end) return
 
   const token = ++requestToken
   isLoading.value = true
@@ -119,8 +124,10 @@ async function loadSummary() {
 
   const settled = await Promise.allSettled(
     DIMENSIONS.map(({ key }) =>
-      $api<AudienceReport>('/event/audience/', {
-        query: { dimension: key, site_id: activeSiteId.value },
+      analyticsStore.fetchAudienceReport(key, {
+        site_id: activeSiteId.value,
+        start_date: period.start,
+        end_date: period.end,
       }),
     ),
   )
@@ -151,13 +158,11 @@ onMounted(async () => {
   }
   if (!activeSiteId.value) {
     globalError.value = 'Enregistrez un site pour consulter les données de votre audience.'
-    return
   }
-  await loadSummary()
 })
 
 watch(
-  () => props.siteId,
+  [activeSiteId, selectedPeriod],
   () => void loadSummary(),
 )
 </script>
@@ -190,9 +195,8 @@ watch(
 
 .total-box {
   display: flex;
-  flex-direction: column;
   align-items: flex-end;
-  gap: 0.15rem;
+  gap: 1rem;
   color: #64748b;
   font-size: 0.85rem;
 }
@@ -223,6 +227,7 @@ watch(
 }
 
 .cards-grid {
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;

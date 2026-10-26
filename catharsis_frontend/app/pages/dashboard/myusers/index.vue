@@ -113,6 +113,7 @@ export default{
 
 .dashboard-main-area {
   flex: 1;
+  min-width: 0;
   padding: 1.75rem 2rem 2.5rem;
   overflow-y: auto;
   box-sizing: border-box;

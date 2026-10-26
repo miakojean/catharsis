@@ -92,7 +92,7 @@ import HeatmapCard from '~/components/dashboard/HeatmapCard.vue'
 import ActiveUsersChart from '~/components/dashboard/ActiveUsersChart.vue'
 import SessionsDeviceCard from '~/components/dashboard/SessionsDeviceCard.vue'
 import emptyChartState from '~/components/dashboard/emptyChartState.vue'
-import RegisterSiteModal from '~/components/dashboard/RegisterSiteModal.vue'
+import RegisterSiteModal from '../../components/modale/RegisterSiteModal.vue'
 import TrackingSnippetModal from '~/components/dashboard/TrackingSnippetModal.vue'
 
 const projectStore = useProjectSiteStore()
@@ -191,6 +191,7 @@ const handleThemeChange = (dark: boolean) => {
 
 .dashboard-main-area {
   flex: 1;
+  min-width: 0;
   padding: 1.75rem 2rem 2.5rem;
   overflow-y: auto;
   box-sizing: border-box;

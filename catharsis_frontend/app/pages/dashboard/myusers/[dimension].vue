@@ -13,8 +13,11 @@
         <DashboardHeader :title="reportTitle"/>
 
         <div class="summary-card">
-          <span class="summary-label">Visiteurs suivis</span>
-          <strong>{{ report?.total_visitors ?? 0 }}</strong>
+          <div class="flex items-center justify-center gap-2">
+            <span class="summary-label">Visiteurs suivis</span>
+            <strong>{{ report?.total_visitors ?? 0 }}</strong>
+          </div>
+          <periodFilter v-model="selectedPeriod"/>
         </div>
 
         <p v-if="errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
@@ -72,7 +75,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import type { PeriodValue } from '~/components/Tools/periodFilter.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
+import periodFilter from '~/components/Tools/periodFilter.vue'
 
 interface AudienceResult {
   label: string
@@ -95,6 +100,7 @@ const selectedSiteId = ref('')
 const report = ref<AudienceReport | null>(null)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const selectedPeriod = ref<PeriodValue | undefined>()
 
 const reportConfig: Record<string, { title: string; description: string }> = {
   countries: { title: 'Pays d’origine', description: 'pays' },
@@ -110,13 +116,20 @@ const reportTitle = computed(() => reportConfig[dimension.value]?.title || 'Audi
 const reportDescription = computed(() => reportConfig[dimension.value]?.description || 'catégorie')
 
 async function loadReport() {
+  const period = selectedPeriod.value;
+  
   if (!reportConfig[dimension.value] || !selectedSiteId.value) return
 
   isLoading.value = true
   errorMessage.value = ''
   try {
     report.value = await $api<AudienceReport>('/event/audience/', {
-      query: { dimension: dimension.value, site_id: selectedSiteId.value },
+      query: { 
+        dimension: dimension.value, 
+        site_id: selectedSiteId.value, 
+        start_date:period?.start, 
+        end_date:period?.end 
+      },
     })
   } catch (error: any) {
     errorMessage.value = error?.data?.error || error?.message || 'Impossible de charger ces données.'
@@ -150,6 +163,10 @@ watch([dimension, () => route.query.site_id], () => {
   if (route.query.site_id) {
     selectedSiteId.value = String(route.query.site_id)
   }
+  if (selectedSiteId.value) void loadReport()
+})
+
+watch(selectedPeriod, () => {
   if (selectedSiteId.value) void loadReport()
 })
 </script>
@@ -224,9 +241,9 @@ h1 {
 
 .summary-card {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   gap: 0.35rem;
-  width: min(100%, 18rem);
+  width: 100%;
   padding: 1.1rem 1.25rem;
   margin-bottom: 1rem;
 }

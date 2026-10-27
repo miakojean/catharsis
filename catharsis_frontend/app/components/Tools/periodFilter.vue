@@ -2,10 +2,10 @@
 <template>
     <div class="period-filter" ref="rootRef">
         <button class="trigger" @click="toggle">
-            <span class="label">{{ currentLabel }}</span>
-            <svg class="chevron" :class="{ open }" width="12" height="12" viewBox="0 0 24 24">
+          <span class="label">{{ currentLabel }}</span>
+          <svg class="chevron" :class="{ open }" width="12" height="12" viewBox="0 0 24 24">
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" />
-            </svg>
+          </svg>
         </button>
 
         <div v-if="open" class="dropdown">
@@ -144,8 +144,8 @@ const presets: Preset[] = [
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 
-const selectedKey = ref<string>(props.modelValue?.key ?? 'last30')
-const currentLabel = ref<string>(props.modelValue?.label ?? '30 derniers jours')
+const selectedKey = ref<string>(props.modelValue?.key ?? 'day')
+const currentLabel = ref<string>(props.modelValue?.label ?? 'Aujourd\'hui')
 
 const customStart = ref<string>(props.modelValue?.start ?? '')
 const customEnd = ref<string>(props.modelValue?.end ?? '')

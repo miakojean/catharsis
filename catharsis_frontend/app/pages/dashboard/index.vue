@@ -15,7 +15,10 @@
       <!-- Main Dashboard Content Area -->
       <main class="dashboard-main-area">
         <!-- Top Header (Search, Notifications, Profile) -->
-          <DashboardHeader @add-site="isRegisterSiteModalOpen = true" />
+          <DashboardHeader
+            @add-site="isRegisterSiteModalOpen = true"
+            @view-snippet="isTrackingSnippetModalOpen = true"
+          />
 
         <!-- Grid of Dashboard Widgets -->
         <div v-if="projectStore.projects.length > 0" class="dashboard-grid">
@@ -68,11 +71,18 @@
       @close="handleCloseRegisterSiteModal"
       @submit="handleCreateProject"
     />
+
+    <TrackingSnippetModal
+      v-if="isTrackingSnippetModalOpen && activeProject"
+      :site-id="activeProject.site_id"
+      :site-name="activeProject.name"
+      @close="isTrackingSnippetModalOpen = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
 import { useAnalyticsStore } from '~/stores/analyticsStore'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
@@ -82,12 +92,21 @@ import HeatmapCard from '~/components/dashboard/HeatmapCard.vue'
 import ActiveUsersChart from '~/components/dashboard/ActiveUsersChart.vue'
 import SessionsDeviceCard from '~/components/dashboard/SessionsDeviceCard.vue'
 import emptyChartState from '~/components/dashboard/emptyChartState.vue'
-import RegisterSiteModal from '~/components/modale/RegisterSiteModal.vue'
+import RegisterSiteModal from '../../components/modale/RegisterSiteModal.vue'
+import TrackingSnippetModal from '~/components/dashboard/TrackingSnippetModal.vue'
 
 const projectStore = useProjectSiteStore()
 const analyticsStore = useAnalyticsStore()
 const isRegisterSiteModalOpen = ref(false)
+const isTrackingSnippetModalOpen = ref(false)
 const createdProject = ref<import('~/stores/projectSiteStore').Project | null>(null)
+
+const activeProject = computed(() => {
+  if (analyticsStore.selectedSiteId) {
+    return projectStore.projects.find(p => p.site_id === analyticsStore.selectedSiteId) || projectStore.projects[0] || null
+  }
+  return projectStore.projects[0] || null
+})
 
 onMounted(async () => {
   await projectStore.getProjects()
@@ -172,6 +191,7 @@ const handleThemeChange = (dark: boolean) => {
 
 .dashboard-main-area {
   flex: 1;
+  min-width: 0;
   padding: 1.75rem 2rem 2.5rem;
   overflow-y: auto;
   box-sizing: border-box;

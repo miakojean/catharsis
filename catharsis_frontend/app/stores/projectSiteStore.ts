@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export interface Project {
     id: string
@@ -66,6 +66,31 @@ export const useProjectSiteStore = defineStore('projectSite', () => {
         }
     }
 
+    const config = useRuntimeConfig()
+    const trackerUrl = computed(() => (config.public?.trackerScriptUrl as string) || 'http://localhost:8000/static/tracker.js')
+
+    function getScriptSnippet(siteId: string): string {
+        return `<script\n  defer\n  src="${trackerUrl.value}"\n  data-site-id="${siteId}">\n</script>`
+    }
+
+    function getFrameworkSnippet(siteId: string): string {
+        return `<!-- Nuxt (nuxt.config.ts) / Vue (index.html) -->
+useHead({
+  script: [
+    {
+      src: '${trackerUrl.value}',
+      defer: true,
+      'data-site-id': '${siteId}',
+    }
+  ]
+})`
+    }
+
+    function getManualEventSnippet(eventName = 'inscription_terminee', properties = '{ plan: "pro" }'): string {
+        return `// Déclencher un événement personnalisé
+window.Catharsis?.trackEvent('${eventName}', ${properties})`
+    }
+
     function clearMessages() {
         message.value.errorMessage = ''
         message.value.successMessage = ''
@@ -75,8 +100,12 @@ export const useProjectSiteStore = defineStore('projectSite', () => {
         projects,
         isLoading,
         message,
+        trackerUrl,
         getProjects,
         createProject,
+        getScriptSnippet,
+        getFrameworkSnippet,
+        getManualEventSnippet,
         clearMessages
     }
 })

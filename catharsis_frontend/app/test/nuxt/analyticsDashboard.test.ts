@@ -18,12 +18,12 @@ describe('Analytics Dashboard & Store', () => {
 
     expect(store.heatmap.days.length).toBe(7)
     expect(store.heatmap.matrix.length).toBe(7)
-    expect(store.heatmap.matrix[0][0]).toBe(0)
+    expect(store.heatmap.matrix[0]![0]).toBe(0)
 
     expect(store.activeUsers.peak_value).toBe(0)
     expect(store.devices.total_visitors).toBe(0)
     expect(store.devices.formatted_total).toBe('0')
-    expect(store.devices.breakdown[0].percentage).toBe(0)
+    expect(store.devices.breakdown[0]!.percentage).toBe(0)
   })
 
 
@@ -44,7 +44,7 @@ describe('Analytics Dashboard & Store', () => {
     setActivePinia(createPinia())
     const store = useAnalyticsStore()
     store.devices.formatted_total = '42.890'
-    store.devices.breakdown[0].percentage = 82.4
+    store.devices.breakdown[0]!.percentage = 82.4
 
     const wrapper = mount(SessionsDeviceCard)
     expect(wrapper.text()).toContain('42.890')

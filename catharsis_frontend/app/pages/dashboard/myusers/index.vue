@@ -16,6 +16,7 @@
         <DashboardHeader 
           title="mes utilisateurs"
           @add-site="isRegisterSiteModalOpen = true" 
+          @view-snippet="isTrackingSnippetModalOpen = true"
         />
 
         <!-- Résumé des caractéristiques des visiteurs -->
@@ -30,15 +31,23 @@
         @close="closeRegisterUserModal"
         @submit="handleCreateProject"
       />
+
+      <TrackingSnippetModal
+        v-if="isTrackingSnippetModalOpen && activeProject"
+        :site-id="activeProject.site_id"
+        :site-name="activeProject.name"
+        @close="isTrackingSnippetModalOpen = false"
+      />
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue';
 import VisitorsSummary from '~/components/dashboard/VisitorsSummary.vue';
 import RegisterSiteModal from '~/components/modale/RegisterSiteModal.vue';
+import TrackingSnippetModal from '~/components/dashboard/TrackingSnippetModal.vue';
 
 import { useProjectSiteStore } from '#imports';
 import { useAnalyticsStore } from '#imports';
@@ -46,7 +55,8 @@ export default{
   components:{
     DashboardSidebar,
     VisitorsSummary,
-    RegisterSiteModal
+    RegisterSiteModal,
+    TrackingSnippetModal
   },
   setup(){
     const isDark = ref(false)
@@ -57,7 +67,15 @@ export default{
 
     // Manage my modal
     const createdProject = ref<import('~/stores/projectSiteStore').Project | null>(null)
+    const isTrackingSnippetModalOpen = ref(false)
+    const activeProject = computed(() => {
+      if (analyticsStore.selectedSiteId) {
+        return projectStore.projects.find(p => p.site_id === analyticsStore.selectedSiteId) || projectStore.projects[0] || null
+      }
+      return projectStore.projects[0] || null
+    })
 
+    //
     const projectStore = useProjectSiteStore();
     const analyticsStore = useAnalyticsStore();
 
@@ -92,6 +110,8 @@ export default{
       isDark,
       handleThemeChange,
       isRegisterSiteModalOpen,
+      isTrackingSnippetModalOpen,
+      activeProject,
       openRegisterUserModal,
       closeRegisterUserModal,
       projectStore,

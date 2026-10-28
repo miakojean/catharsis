@@ -10,7 +10,7 @@
       </div>
       <span class="quadrant-label">Users</span>
       <span class="quadrant-value">{{ analyticsStore.kpi.users.formatted }}</span>
-      <div class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.users.is_positive }">
+      <div v-if="analyticsStore.kpi.users.period === 'vs période précédente'" class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.users.is_positive }">
         <svg class="trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <g v-if="analyticsStore.kpi.users.is_positive">
             <line x1="7" y1="17" x2="17" y2="7"></line>
@@ -24,6 +24,7 @@
         <span class="trend-pct">{{ analyticsStore.kpi.users.trend }}%</span>
         <span class="trend-period">{{ analyticsStore.kpi.users.period }}</span>
       </div>
+      <span v-else class="quadrant-trend trend-period">{{ analyticsStore.kpi.users.period }}</span>
     </div>
 
     <!-- Quadrant 2: Revenue -->
@@ -37,7 +38,7 @@
       </div>
       <span class="quadrant-label">Revenue</span>
       <span class="quadrant-value">{{ analyticsStore.kpi.revenue.formatted }}</span>
-      <div class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.revenue.is_positive }">
+      <div v-if="analyticsStore.kpi.revenue.period === 'vs période précédente'" class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.revenue.is_positive }">
         <svg class="trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <g v-if="analyticsStore.kpi.revenue.is_positive">
             <line x1="7" y1="17" x2="17" y2="7"></line>
@@ -51,6 +52,7 @@
         <span class="trend-pct">{{ analyticsStore.kpi.revenue.trend }}%</span>
         <span class="trend-period">{{ analyticsStore.kpi.revenue.period }}</span>
       </div>
+      <span v-else class="quadrant-trend trend-period">{{ analyticsStore.kpi.revenue.period }}</span>
     </div>
 
     <!-- Quadrant 3: Conv Rate -->
@@ -64,7 +66,7 @@
       </div>
       <span class="quadrant-label">Conv Rate</span>
       <span class="quadrant-value">{{ analyticsStore.kpi.conversion_rate.formatted }}</span>
-      <div class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.conversion_rate.is_positive }">
+      <div v-if="analyticsStore.kpi.conversion_rate.period === 'vs période précédente'" class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.conversion_rate.is_positive }">
         <svg class="trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <g v-if="analyticsStore.kpi.conversion_rate.is_positive">
             <line x1="7" y1="17" x2="17" y2="7"></line>
@@ -78,6 +80,7 @@
         <span class="trend-pct">{{ analyticsStore.kpi.conversion_rate.trend }}%</span>
         <span class="trend-period">{{ analyticsStore.kpi.conversion_rate.period }}</span>
       </div>
+      <span v-else class="quadrant-trend trend-period">{{ analyticsStore.kpi.conversion_rate.period }}</span>
     </div>
 
     <!-- Quadrant 4: Session -->
@@ -90,7 +93,7 @@
       </div>
       <span class="quadrant-label">Session</span>
       <span class="quadrant-value">{{ analyticsStore.kpi.sessions.formatted }}</span>
-      <div class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.sessions.is_positive }">
+      <div v-if="analyticsStore.kpi.sessions.period === 'vs période précédente'" class="quadrant-trend" :class="{ 'is-negative': !analyticsStore.kpi.sessions.is_positive }">
         <svg class="trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <g v-if="analyticsStore.kpi.sessions.is_positive">
             <line x1="7" y1="17" x2="17" y2="7"></line>
@@ -104,6 +107,7 @@
         <span class="trend-pct">{{ analyticsStore.kpi.sessions.trend }}%</span>
         <span class="trend-period">{{ analyticsStore.kpi.sessions.period }}</span>
       </div>
+      <span v-else class="quadrant-trend trend-period">{{ analyticsStore.kpi.sessions.period }}</span>
 
     </div>
   </div>

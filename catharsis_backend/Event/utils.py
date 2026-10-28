@@ -3,6 +3,7 @@
     Les vues se contentent de valider la requête, d'appeler une fonction d'ici
     et de renvoyer la Response.
 """
+from calendar import monthrange
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, time, timedelta
@@ -12,8 +13,8 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count
-from django.db.models.functions import ExtractHour, ExtractWeekDay
+from django.db.models import Case, Count, IntegerField, Value, When
+from django.db.models.functions import ExtractDay, ExtractHour, ExtractMonth, ExtractWeekDay
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.exceptions import APIException, NotFound, ValidationError
@@ -65,26 +66,11 @@ OS_RULES = (
     (('linux',), 'Linux'),
 )
 
-# TODO: valeurs factices à remplacer par de vraies métriques.
-PLACEHOLDER_TREND = 1.02
-PLACEHOLDER_REVENUE_PER_USER = 11.25
-TIMELINE_PRESETS = {  # période -> (labels, ratios du total de sessions, peak_label)
-    'day': (
-        ['00h', '04h', '08h', '12h', '16h', '20h', '23h'],
-        [0.1, 0.05, 0.2, 0.35, 0.2, 0.08, 0.02],
-        'Aujourd\'hui',
-    ),
-    'month': (
-        ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août'],
-        [0, 0, 0, 0.2, 0.3, 0.25, 0.15, 1],
-        'Ce mois',
-    ),
-    'year': (
-        ['2022', '2023', '2024', '2025', '2026'],
-        [0, 0, 0, 0.3, 1],
-        'Année 2026',
-    ),
-}
+MONTH_LABELS = ('Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc')
+MONTH_NAMES_FR = (
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+)
 
 
 class GeoIPDatabaseMissing(APIException):
@@ -199,65 +185,93 @@ def record_event(serializer, request):
 # --------------------------------------------------------------------------- #
 def build_dashboard(projects, period):
     site_ids = list(projects.values_list('site_id', flat=True))
-    
-    # 1. Définition de la date de début selon la période demandée
-    now = timezone.now()
-    if period == 'day':
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif period == 'year':
-        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-    else:  # Par défaut : 'month'
-        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    now = timezone.localtime()
+    start_date, previous_start, previous_end = _dashboard_period_bounds(period, now)
 
-    # 2. Application du filtre sur les requêtes
     sessions = Session.objects.filter(
-        project__in=projects, 
-        started_at__gte=start_date
+        project__in=projects,
+        started_at__gte=start_date,
+        started_at__lt=now,
+    )
+    previous_sessions = Session.objects.filter(
+        project__in=projects,
+        started_at__gte=previous_start,
+        started_at__lt=previous_end,
     )
     events = Event.objects.filter(
-        site_id__in=site_ids, 
-        client_timestamp__gte=start_date
+        site_id__in=site_ids,
+        client_timestamp__gte=start_date,
+        client_timestamp__lt=now,
     )
 
     total_sessions = sessions.count()
-    visitors = sessions.values('session_id').distinct().count()
+    visitors = sessions.values('project_id', 'session_id').distinct().count()
+    previous_total_sessions = previous_sessions.count()
+    previous_visitors = previous_sessions.values('project_id', 'session_id').distinct().count()
 
     return {
         'site_id': site_ids[0] if site_ids else None,
-        'kpi': _kpis(visitors, total_sessions, events.count()),
+        'kpi': _kpis(visitors, total_sessions, previous_visitors, previous_total_sessions),
         'heatmap': {
             'days': HEATMAP_DAYS,
             'hours': HEATMAP_HOURS,
             'matrix': _heatmap(events),
         },
-        'active_users': _timeline(period, total_sessions),
+        'active_users': _timeline(sessions, period, start_date),
         'devices': _device_breakdown(sessions, visitors),
     }
 
 
-def _kpis(visitors, sessions, events):
-    if sessions:
-        trend, trend_period = PLACEHOLDER_TREND, 'from last week'
-        conversion = round(events / sessions * 10, 2)
-        revenue = round(visitors * PLACEHOLDER_REVENUE_PER_USER, 2)
+def _dashboard_period_bounds(period, now):
+    if period == 'day':
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        previous_start = start - timedelta(days=1)
+        previous_end = previous_start + (now - start)
+    elif period == 'year':
+        start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        previous_start = start.replace(year=start.year - 1)
+        previous_end = min(previous_start + (now - start), start)
     else:
-        trend, trend_period = 0.0, 'aucune donnée'
-        conversion = revenue = 0.0
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        previous_start = (start - timedelta(days=1)).replace(day=1)
+        previous_end = min(previous_start + (now - start), start)
+    return start, previous_start, previous_end
 
-    def kpi(value, formatted):
+
+def _percentage_change(current, previous):
+    if previous == 0:
+        return (0.0, 'Nouvelle période') if current else (0.0, 'Aucune donnée')
+    return round((current - previous) / previous * 100, 1), 'vs période précédente'
+
+
+def _kpis(visitors, sessions, previous_visitors, previous_sessions):
+    def kpi(value, formatted, previous_value):
+        trend, trend_period = _percentage_change(value, previous_value)
         return {
             'value': value,
             'formatted': formatted,
             'trend': trend,
-            'is_positive': True,
+            'is_positive': value >= previous_value,
             'period': trend_period,
         }
 
     return {
-        'users': kpi(visitors, format_number(visitors)),
-        'revenue': kpi(revenue, f"${revenue:,.2f}".replace(',', ' ')),
-        'conversion_rate': kpi(conversion, f"{conversion}%"),
-        'sessions': kpi(sessions, format_number(sessions, '.')),
+        'users': kpi(visitors, format_number(visitors), previous_visitors),
+        'revenue': {
+            'value': 0.0,
+            'formatted': '—',
+            'trend': 0.0,
+            'is_positive': True,
+            'period': 'Non suivi',
+        },
+        'conversion_rate': {
+            'value': 0.0,
+            'formatted': '—',
+            'trend': 0.0,
+            'is_positive': True,
+            'period': 'Non suivi',
+        },
+        'sessions': kpi(sessions, format_number(sessions, '.'), previous_sessions),
     }
 
 
@@ -278,12 +292,56 @@ def _heatmap(events):
     return matrix
 
 
-def _timeline(period, total_sessions):
-    labels, ratios, peak_label = TIMELINE_PRESETS[period]
-    if total_sessions:
-        data = [0 if r == 0 else max(1, int(total_sessions * r)) for r in ratios]
+def _timeline(sessions, period, start_date):
+    if period == 'day':
+        labels = [f'{hour:02d}h' for hour in range(0, 24, 4)]
+        hour = ExtractHour('started_at', tzinfo=timezone.get_current_timezone())
+        rows = (
+            sessions.annotate(hour=hour)
+            .annotate(bucket=Case(
+                When(hour__lt=4, then=Value(0)),
+                When(hour__lt=8, then=Value(1)),
+                When(hour__lt=12, then=Value(2)),
+                When(hour__lt=16, then=Value(3)),
+                When(hour__lt=20, then=Value(4)),
+                default=Value(5),
+                output_field=IntegerField(),
+            ))
+            .values('bucket')
+            .annotate(total=Count('id'))
+        )
+        data = [0] * len(labels)
+        for row in rows:
+            data[row['bucket']] = row['total']
+        peak_labels = [f"Aujourd'hui · {label}" for label in labels]
+    elif period == 'year':
+        labels = list(MONTH_LABELS)
+        rows = (
+            sessions.annotate(bucket=ExtractMonth('started_at', tzinfo=timezone.get_current_timezone()))
+            .values('bucket')
+            .annotate(total=Count('id'))
+        )
+        data = [0] * 12
+        for row in rows:
+            data[row['bucket'] - 1] = row['total']
+        peak_labels = [f'{label} {start_date.year}' for label in labels]
     else:
-        data, peak_label = [0] * len(labels), 'Pas de données'
+        day_count = monthrange(start_date.year, start_date.month)[1]
+        labels = [str(day) for day in range(1, day_count + 1)]
+        rows = (
+            sessions.annotate(bucket=ExtractDay('started_at', tzinfo=timezone.get_current_timezone()))
+            .values('bucket')
+            .annotate(total=Count('id'))
+        )
+        data = [0] * day_count
+        for row in rows:
+            data[row['bucket'] - 1] = row['total']
+        peak_labels = [
+            f"{day} {MONTH_NAMES_FR[start_date.month - 1]}" for day in range(1, day_count + 1)
+        ]
+
+    peak_index = max(range(len(data)), key=data.__getitem__)
+    peak_label = peak_labels[peak_index] if data[peak_index] else 'Pas de données'
     return {
         'period': period,
         'peak_value': max(data),

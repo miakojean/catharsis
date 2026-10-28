@@ -12,8 +12,10 @@ describe('Analytics Dashboard & Store', () => {
     const store = useAnalyticsStore()
 
     expect(store.kpi.users.formatted).toBe('0')
-    expect(store.kpi.revenue.formatted).toBe('$0.00')
-    expect(store.kpi.conversion_rate.formatted).toBe('0%')
+    expect(store.kpi.revenue.formatted).toBe('—')
+    expect(store.kpi.revenue.period).toBe('Non suivi')
+    expect(store.kpi.conversion_rate.formatted).toBe('—')
+    expect(store.kpi.conversion_rate.period).toBe('Non suivi')
     expect(store.kpi.sessions.formatted).toBe('0')
 
     expect(store.heatmap.days.length).toBe(7)
@@ -21,6 +23,8 @@ describe('Analytics Dashboard & Store', () => {
     expect(store.heatmap.matrix[0]![0]).toBe(0)
 
     expect(store.activeUsers.peak_value).toBe(0)
+    expect(store.activeUsers.labels).toEqual([])
+    expect(store.activeUsers.data).toEqual([])
     expect(store.devices.total_visitors).toBe(0)
     expect(store.devices.formatted_total).toBe('0')
     expect(store.devices.breakdown[0]!.percentage).toBe(0)
@@ -66,4 +70,3 @@ describe('Analytics Dashboard & Store', () => {
     expect(wrapper.findAll('.filter-opt').length).toBe(3)
   })
 })
-

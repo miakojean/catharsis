@@ -75,8 +75,8 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   // Default initial dynamic state (zero when no activity or site recorded)
   const kpi = ref<KpiData>({
     users: { value: 0, formatted: '0', trend: 0, is_positive: true, period: 'aucune donnée' },
-    revenue: { value: 0, formatted: '$0.00', trend: 0, is_positive: true, period: 'aucune donnée' },
-    conversion_rate: { value: 0, formatted: '0%', trend: 0, is_positive: true, period: 'aucune donnée' },
+    revenue: { value: 0, formatted: '—', trend: 0, is_positive: true, period: 'Non suivi' },
+    conversion_rate: { value: 0, formatted: '—', trend: 0, is_positive: true, period: 'Non suivi' },
     sessions: { value: 0, formatted: '0', trend: 0, is_positive: true, period: 'aucune donnée' }
   })
 
@@ -98,8 +98,8 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     period: 'month',
     peak_value: 0,
     peak_label: 'Pas de données',
-    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août'],
-    data: [0, 0, 0, 0, 0, 0, 0, 0]
+    labels: [],
+    data: []
   })
 
   const devices = ref<DevicesData>({

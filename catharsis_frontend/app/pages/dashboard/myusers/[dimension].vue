@@ -75,26 +75,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import { useProjectSiteStore } from '~/stores/projectSiteStore'
+import { useAnalyticsStore, type AudienceReport } from '~/stores/analyticsStore'
 import type { PeriodValue } from '~/components/Tools/periodFilter.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 import periodFilter from '~/components/Tools/periodFilter.vue'
 
-interface AudienceResult {
-  label: string
-  visitors: number
-}
-
-interface AudienceReport {
-  dimension: string
-  available: boolean
-  message: string
-  total_visitors: number
-  results: AudienceResult[]
-}
-
 const route = useRoute()
-const { $api } = useNuxtApp()
 const projectStore = useProjectSiteStore()
+const analyticsStore = useAnalyticsStore()
 const projects = computed(() => projectStore.projects)
 const selectedSiteId = ref('')
 const report = ref<AudienceReport | null>(null)
@@ -123,13 +111,10 @@ async function loadReport() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    report.value = await $api<AudienceReport>('/event/audience/', {
-      query: { 
-        dimension: dimension.value, 
-        site_id: selectedSiteId.value, 
-        start_date:period?.start, 
-        end_date:period?.end 
-      },
+    report.value = await analyticsStore.fetchAudienceReport(dimension.value, {
+      site_id: selectedSiteId.value,
+      start_date: period?.start,
+      end_date: period?.end,
     })
   } catch (error: any) {
     errorMessage.value = error?.data?.error || error?.message || 'Impossible de charger ces données.'

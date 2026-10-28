@@ -158,7 +158,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
 
   async function fetchAudienceReport(
     dimension: string,
-    params: { site_id: string; start_date: string; end_date: string },
+    params: { site_id: string; start_date?: string; end_date?: string },
   ) {
     return await $api<AudienceReport>('/event/audience/', {
       query: { dimension, ...params },

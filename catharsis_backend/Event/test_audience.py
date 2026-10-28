@@ -121,6 +121,7 @@ class AudienceReportTests(TestCase):
                 })
                 self.assertEqual(response.status_code, 400)
 
+    @override_settings(GEOIP_COUNTRY_DB='')
     def test_country_report_explains_missing_local_database(self):
         response = self.client.get(
             f'/event/audience/?dimension=countries&site_id={self.project.site_id}'
@@ -129,6 +130,26 @@ class AudienceReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()['available'])
         self.assertIn('GEOIP_COUNTRY_DB', response.json()['message'])
+
+    def test_country_report_uses_bundled_database_by_default(self):
+        Event.objects.create(
+            site_id=self.project.site_id,
+            session_id='visitor-one',
+            event_type='page_view',
+            url='https://example.com/home',
+            client_timestamp=timezone.now(),
+            ip_address='8.8.8.8',
+        )
+
+        response = self.client.get(
+            f'/event/audience/?dimension=countries&site_id={self.project.site_id}'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['available'])
+        self.assertEqual(response.json()['results'], [
+            {'label': 'United States', 'visitors': 1},
+        ])
 
     @override_settings(GEOIP_COUNTRY_DB='local-country.mmdb')
     @patch('pathlib.Path.is_file', return_value=True)

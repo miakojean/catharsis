@@ -17,7 +17,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-GEOIP_COUNTRY_DB = os.path.join(BASE_DIR, 'geoip', 'GeoLite2-Country.mmdb')
+GEOIP_COUNTRY_DB = os.getenv('GEOIP_COUNTRY_DB') or str(
+    BASE_DIR / 'geoip' / 'GeoLite2-Country.mmdb'
+)
 
 
 # Quick-start development settings - unsuitable for production
@@ -103,8 +105,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
-
-GEOIP_COUNTRY_DB = os.getenv('GEOIP_COUNTRY_DB', '')
 
 REST_AUTH = {
     'USE_JWT': True,

@@ -56,7 +56,7 @@ window.Catharsis?.trackEvent('inscription_terminee', {
 })
 ```
 
-Le tableau de bord « Mes utilisateurs » regroupe les visiteurs par source, appareil, navigateur, système d’exploitation et page visitée. Les adresses IP sont conservées côté backend et ne sont pas exposées dans ces rapports. Les pays sont résolus localement : installez `geoip2`, fournissez une base MaxMind GeoLite2 Country et définissez `GEOIP_COUNTRY_DB` sur le chemin du fichier `.mmdb` côté backend. Sans cette configuration, le rapport des pays indique explicitement que les données sont indisponibles.
+Le tableau de bord « Mes utilisateurs » regroupe les visiteurs par source, appareil, navigateur, système d’exploitation, pays et page visitée. Les adresses IP sont conservées côté backend et ne sont pas exposées dans ces rapports. Les pays sont résolus localement avec la base MaxMind GeoLite2 Country fournie dans `catharsis_backend/geoip/GeoLite2-Country.mmdb`. Pour utiliser une autre base, installez `geoip2` et définissez `GEOIP_COUNTRY_DB` sur le chemin du fichier `.mmdb` côté backend.
 
 ## Développement
 

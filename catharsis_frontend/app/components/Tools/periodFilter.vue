@@ -49,14 +49,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { usePeriodFilterStore, type PeriodValue } from '~/stores/periodFilterStore'
 
-export interface PeriodValue {
-  key: string
-  label: string
-  start: string | null // ISO date "YYYY-MM-DD"
-  end: string | null
-}
+export type { PeriodValue } from '~/stores/periodFilterStore'
 
 const props = defineProps<{
   modelValue?: PeriodValue
@@ -143,6 +139,7 @@ const presets: Preset[] = [
 /* ---------- state ---------- */
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
+const periodStore = usePeriodFilterStore()
 
 const selectedKey = ref<string>(props.modelValue?.key ?? 'day')
 const currentLabel = ref<string>(props.modelValue?.label ?? 'Aujourd\'hui')
@@ -156,24 +153,27 @@ function emitPeriod(v: PeriodValue) {
   emit('change', v)
 }
 
+function syncPeriod(v: PeriodValue | null) {
+  if (!v) return
+  selectedKey.value = v.key
+  currentLabel.value = v.label
+  customStart.value = v.start ?? ''
+  customEnd.value = v.end ?? ''
+  emitPeriod(v)
+}
+
 function selectPreset(p: Preset) {
   const [start, end] = p.range()
-  selectedKey.value = p.key
-  currentLabel.value = p.label
-  customStart.value = start
-  customEnd.value = end
   open.value = false
-  emitPeriod({ key: p.key, label: p.label, start, end })
+  periodStore.setPeriod({ key: p.key, label: p.label, start, end })
 }
 
 function applyCustom() {
   if (!customStart.value || !customEnd.value) return
-  selectedKey.value = 'custom'
-  currentLabel.value = `${formatFr(customStart.value)} → ${formatFr(customEnd.value)}`
   open.value = false
-  emitPeriod({
+  periodStore.setPeriod({
     key: 'custom',
-    label: currentLabel.value,
+    label: `${formatFr(customStart.value)} → ${formatFr(customEnd.value)}`,
     start: customStart.value,
     end: customEnd.value,
   })
@@ -202,19 +202,36 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 watch(
   () => props.modelValue,
   (v) => {
-    if (!v) return
-    selectedKey.value = v.key
-    currentLabel.value = v.label
-    if (v.start) customStart.value = v.start
-    if (v.end) customEnd.value = v.end
+    const current = periodStore.selectedPeriod
+    if (
+      v &&
+      (!current ||
+        v.key !== current.key ||
+        v.label !== current.label ||
+        v.start !== current.start ||
+        v.end !== current.end)
+    ) {
+      periodStore.setPeriod(v)
+    }
   }
 )
 
-/* ---------- init : émet la valeur par défaut si rien fourni ---------- */
+watch(
+  () => periodStore.selectedPeriod,
+  syncPeriod,
+  { flush: 'sync' },
+)
+
+/* ---------- restore cached selection, initializing only when needed ---------- */
 onMounted(() => {
-  if (!props.modelValue) {
-    const p = presets.find((x) => x.key === selectedKey.value) ?? presets[3]
-    selectPreset(p)
+  const defaultPreset = presets.find((preset) => preset.key === 'day')!
+  const [start, end] = defaultPreset.range()
+  const defaultPeriod = { key: defaultPreset.key, label: defaultPreset.label, start, end }
+
+  if (periodStore.selectedPeriod) {
+    syncPeriod(periodStore.selectedPeriod)
+  } else {
+    periodStore.initializePeriod(defaultPeriod, props.modelValue)
   }
 })
 </script>

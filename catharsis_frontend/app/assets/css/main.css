@@ -17,6 +17,20 @@
     --malachite: #31d843ff;
     --spring-green: #3eff8bff;
     --my-black: #4b4a4a;
+    --bg-main: #f8fafc;
+    --card-bg: #ffffff;
+    --sidebar-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-heading: #0f172a;
+    --text-muted: #64748b;
+    --input-bg: #ffffff;
+    --icon-bg: #eff6ff;
+    --toggle-bg: #f1f5f9;
+    --nav-text: #64748b;
+    --nav-hover-bg: #f8fafc;
+    --nav-active-bg: #eff6ff;
+    --grid-color: #f1f5f9;
+    --gauge-track: #f1f5f9
 }
 
 .dashboard-root {

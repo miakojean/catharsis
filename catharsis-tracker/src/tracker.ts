@@ -61,15 +61,35 @@ interface Window {
 
   // --- 2. GESTION DE LA SESSION ---
 
+  function createSessionId(): string {
+    if (window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+
+    const bytes = new Uint8Array(16);
+    if (window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (let index = 0; index < bytes.length; index += 1) {
+        bytes[index] = Math.floor(Math.random() * 256);
+      }
+    }
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, byte => {
+      const value = byte.toString(16);
+      return value.length === 1 ? `0${value}` : value;
+    }).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
   // Fonction pour récupérer ou créer un identifiant de session unique
   function getOrCreateSessionId(): string {
-    // On cherche un ID existant dans le stockage de session du navigateur
     let id = sessionStorage.getItem('catharsis_session_id');
 
-    if (!id) {
-      // S'il n'existe pas, on en génère un aléatoire (ex: sess_a1b2c3d4)
-      id = 'sess_' + Math.random().toString(36).substring(2);
-      // Et on le sauvegarde pour la durée de la session
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      id = createSessionId();
       sessionStorage.setItem('catharsis_session_id', id);
     }
     return id;

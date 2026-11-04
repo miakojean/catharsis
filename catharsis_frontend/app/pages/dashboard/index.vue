@@ -111,7 +111,7 @@ const activeProject = computed(() => {
 onMounted(async () => {
   await projectStore.getProjects()
   if (projectStore.projects.length > 0) {
-    const defaultSiteId = projectStore.projects[0]?.site_id
+    const defaultSiteId = projectStore.projects[0]?.site_id // Il affiche le premier projet quand il existe
     await analyticsStore.fetchAnalytics({ site_id: defaultSiteId })
   }
 })

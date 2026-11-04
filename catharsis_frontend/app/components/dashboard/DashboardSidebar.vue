@@ -26,7 +26,7 @@
       <ul class="nav-list">
         <!-- Dashboard (Active) -->
         <li class="nav-item">
-          <NuxtLink to="/dashboard" class="nav-link active">
+          <NuxtLink to="/dashboard" class="nav-link" :class="{'active': route.path==='/dashboard'}">
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -42,6 +42,7 @@
             class="nav-link nav-btn"
             aria-controls="users-submenu"
             :aria-expanded="activeMenu === 'users'"
+
             @click="()=>router.push('/dashboard/myusers')"
           >
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -76,7 +77,7 @@
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
-            <span class="nav-label">Realtime</span>
+            <span class="nav-label">Evènements</span>
             <svg class="chevron-icon" :class="{ 'rotated': activeMenu === 'realtime' }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
@@ -312,8 +313,8 @@ watch(() => route.path, (path) => {
 }
 
 .nav-link.active {
-  background-color: var(--nav-active-bg, #eff6ff);
-  color: #2563eb;
+  background-color: var(--bright-fern);
+  color: var(--card-bg);
   font-weight: 600;
 }
 
@@ -371,8 +372,8 @@ watch(() => route.path, (path) => {
 }
 
 .nav-sublink.active {
-  background-color: var(--nav-active-bg, #eff6ff);
-  color: #2563eb;
+  background-color: var(--bright-fern);
+  color: var(--card-bg);
   font-weight: 600;
 }
 

@@ -3,21 +3,7 @@
     <!-- Brand Logo -->
     <div class="sidebar-brand">
       <NuxtLink to="/dashboard" class="brand-link">
-        <div class="brand-logo-icon">
-          <!-- Blue circular icon with white curve arrow / lightning -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="12" fill="#2563eb" />
-            <path
-              d="M7 13.5L12 8.5M12 8.5L17 13.5M12 8.5V17"
-              stroke="#ffffff"
-              stroke-width="2.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              transform="rotate(45 12 12)"
-            />
-          </svg>
-        </div>
-        <span class="brand-name">Catharsis</span>
+        <CatharsisLogo variant="full" size="md" :show-subtitle="true" />
       </NuxtLink>
     </div>
 
@@ -115,14 +101,18 @@
 
         <!-- Conversion -->
         <li class="nav-item">
-          <a href="#" class="nav-link" @click.prevent>
+          <NuxtLink
+            to="/dashboard/conversions"
+            class="nav-link"
+            :class="{ active: route.path.startsWith('/dashboard/conversions') }"
+          >
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="20" x2="18" y2="10"></line>
               <line x1="12" y1="20" x2="12" y2="4"></line>
               <line x1="6" y1="20" x2="6" y2="14"></line>
             </svg>
             <span class="nav-label">Conversion</span>
-          </a>
+          </NuxtLink>
         </li>
       </ul>
 
@@ -193,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+import CatharsisLogo from '~/components/brand/CatharsisLogo.vue'
 import { ref, watch } from 'vue'
 import { routerKey, useRoute, useRouter } from 'vue-router'
 

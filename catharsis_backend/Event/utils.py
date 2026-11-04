@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.exceptions import APIException, NotFound, ValidationError
 
-from .models import Event, Project, Session
+from .models import ConversionGoal, Event, Project, Session
 
 # --------------------------------------------------------------------------- #
 # Constantes
@@ -203,15 +203,40 @@ def build_dashboard(projects, period):
         client_timestamp__gte=start_date,
         client_timestamp__lt=now,
     )
+    previous_events = Event.objects.filter(
+        site_id__in=site_ids,
+        client_timestamp__gte=previous_start,
+        client_timestamp__lt=previous_end,
+    )
 
     total_sessions = sessions.count()
     visitors = sessions.values('project_id', 'session_id').distinct().count()
     previous_total_sessions = previous_sessions.count()
     previous_visitors = previous_sessions.values('project_id', 'session_id').distinct().count()
 
+    goals = list(ConversionGoal.objects.filter(project__in=projects).select_related('project'))
+    conversion_kpi = None
+    if goals:
+        current_cr = _compute_conversion_rate(events, goals, total_sessions)
+        previous_cr = _compute_conversion_rate(previous_events, goals, previous_total_sessions)
+        trend, trend_period = _percentage_change(current_cr, previous_cr)
+        conversion_kpi = {
+            'value': current_cr,
+            'formatted': f'{current_cr}%',
+            'trend': trend,
+            'is_positive': current_cr >= previous_cr,
+            'period': trend_period,
+        }
+
     return {
         'site_id': site_ids[0] if site_ids else None,
-        'kpi': _kpis(visitors, total_sessions, previous_visitors, previous_total_sessions),
+        'kpi': _kpis(
+            visitors,
+            total_sessions,
+            previous_visitors,
+            previous_total_sessions,
+            conversion_kpi=conversion_kpi,
+        ),
         'heatmap': {
             'days': HEATMAP_DAYS,
             'hours': HEATMAP_HOURS,
@@ -244,7 +269,7 @@ def _percentage_change(current, previous):
     return round((current - previous) / previous * 100, 1), 'vs période précédente'
 
 
-def _kpis(visitors, sessions, previous_visitors, previous_sessions):
+def _kpis(visitors, sessions, previous_visitors, previous_sessions, conversion_kpi=None):
     def kpi(value, formatted, previous_value):
         trend, trend_period = _percentage_change(value, previous_value)
         return {
@@ -255,6 +280,14 @@ def _kpis(visitors, sessions, previous_visitors, previous_sessions):
             'period': trend_period,
         }
 
+    default_conversion_kpi = {
+        'value': 0.0,
+        'formatted': '—',
+        'trend': 0.0,
+        'is_positive': True,
+        'period': 'Non suivi',
+    }
+
     return {
         'users': kpi(visitors, format_number(visitors), previous_visitors),
         'revenue': {
@@ -264,13 +297,7 @@ def _kpis(visitors, sessions, previous_visitors, previous_sessions):
             'is_positive': True,
             'period': 'Non suivi',
         },
-        'conversion_rate': {
-            'value': 0.0,
-            'formatted': '—',
-            'trend': 0.0,
-            'is_positive': True,
-            'period': 'Non suivi',
-        },
+        'conversion_rate': conversion_kpi if conversion_kpi is not None else default_conversion_kpi,
         'sessions': kpi(sessions, format_number(sessions, '.'), previous_sessions),
     }
 
@@ -487,4 +514,144 @@ def build_audience_report(projects, dimension, start_date=None, end_date=None):
         'message': message,
         'total_visitors': total,
         'results': rows[:100],
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Objectifs de conversion
+# --------------------------------------------------------------------------- #
+def _event_matches_goal(event_dict, goal):
+    """Vérifie si un événement correspond à un objectif de conversion."""
+    if event_dict['site_id'] != goal.project.site_id:
+        return False
+
+    target = (goal.target_value or '').strip()
+    if not target:
+        return False
+
+    if goal.goal_type == ConversionGoal.GOAL_TYPE_CUSTOM_EVENT:
+        return (event_dict.get('event_type') or '').strip() == target
+
+    if goal.goal_type == ConversionGoal.GOAL_TYPE_PAGEVIEW_URL:
+        if (event_dict.get('event_type') or '').strip() not in ('page_view', 'pageview'):
+            return False
+        raw_url = event_dict.get('url') or ''
+        path = _safe_path(raw_url)
+        if target == '/':
+            return path == '/'
+        normalized_target = target.rstrip('/')
+        normalized_path = path.rstrip('/')
+        return (
+            normalized_path == normalized_target
+            or normalized_target in path
+            or normalized_target in raw_url
+        )
+
+    return False
+
+
+def _compute_conversion_rate(events_queryset, goals, total_sessions):
+    """Retourne le taux de conversion global (%) pour une liste d'objectifs."""
+    if not goals:
+        return 0.0
+
+    event_rows = list(
+        events_queryset.order_by().values('site_id', 'session_id', 'event_type', 'url')
+    )
+    distinct_sessions = {(row['site_id'], str(row['session_id'])) for row in event_rows}
+    denominator = max(total_sessions, len(distinct_sessions))
+    if denominator == 0:
+        return 0.0
+
+    converted_sessions = set()
+    for row in event_rows:
+        session_key = (row['site_id'], str(row['session_id']))
+        if session_key in converted_sessions:
+            continue
+        if any(_event_matches_goal(row, goal) for goal in goals):
+            converted_sessions.add(session_key)
+
+    return round(len(converted_sessions) / denominator * 100, 1)
+
+
+def build_conversions_report(projects, start_date=None, end_date=None):
+    """Construit le rapport des objectifs de conversion et leurs métriques (nombre et taux en %)."""
+    site_ids = list(projects.values_list('site_id', flat=True))
+    goals = list(ConversionGoal.objects.filter(project__in=projects).select_related('project'))
+
+    event_queryset = Event.objects.filter(site_id__in=site_ids)
+    session_queryset = Session.objects.filter(project__in=projects)
+
+    if start_date is not None and end_date is not None:
+        start_at = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_at = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+        event_queryset = event_queryset.filter(
+            client_timestamp__gte=start_at,
+            client_timestamp__lt=end_at,
+        )
+        session_queryset = session_queryset.filter(
+            started_at__gte=start_at,
+            started_at__lt=end_at,
+        )
+
+    event_rows = list(
+        event_queryset.order_by().values('site_id', 'session_id', 'event_type', 'url')
+    )
+
+    sessions_by_site = {sid: set() for sid in site_ids}
+    for sid, sess_uuid in session_queryset.values_list('project__site_id', 'session_id'):
+        sessions_by_site.setdefault(sid, set()).add(str(sess_uuid))
+    for row in event_rows:
+        sessions_by_site.setdefault(row['site_id'], set()).add(str(row['session_id']))
+
+    total_sessions = sum(len(sess_set) for sess_set in sessions_by_site.values())
+    all_converted_sessions = set()
+    total_conversions = 0
+    goal_results = []
+
+    for goal in goals:
+        goal_site_id = goal.project.site_id
+        site_sessions_count = len(sessions_by_site.get(goal_site_id, set()))
+        goal_conversions_count = 0
+        goal_converted_sessions = set()
+
+        for row in event_rows:
+            if _event_matches_goal(row, goal):
+                goal_conversions_count += 1
+                sess_key = (row['site_id'], str(row['session_id']))
+                goal_converted_sessions.add(sess_key)
+                all_converted_sessions.add(sess_key)
+
+        total_conversions += goal_conversions_count
+        rate = (
+            round(len(goal_converted_sessions) / site_sessions_count * 100, 1)
+            if site_sessions_count > 0
+            else 0.0
+        )
+
+        goal_results.append({
+            'id': str(goal.id),
+            'site_id': goal_site_id,
+            'name': goal.name,
+            'goal_type': goal.goal_type,
+            'target_value': goal.target_value,
+            'conversions_count': goal_conversions_count,
+            'converted_sessions': len(goal_converted_sessions),
+            'conversion_rate': rate,
+            'created_at': goal.created_at.isoformat(),
+        })
+
+    global_rate = (
+        round(len(all_converted_sessions) / total_sessions * 100, 1)
+        if total_sessions > 0
+        else 0.0
+    )
+
+    return {
+        'site_id': site_ids[0] if site_ids else None,
+        'total_sessions': total_sessions,
+        'total_conversions': total_conversions,
+        'converted_sessions': len(all_converted_sessions),
+        'conversion_rate': global_rate,
+        'goals': goal_results,
     }

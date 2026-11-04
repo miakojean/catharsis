@@ -87,3 +87,34 @@ class Event(models.Model):
 
     class Meta:
         ordering = ['-client_timestamp'] # Les plus récents en premier
+
+
+class ConversionGoal(models.Model):
+    """Objectif de conversion personnalisé rattaché à un projet."""
+    GOAL_TYPE_CUSTOM_EVENT = 'custom_event'
+    GOAL_TYPE_PAGEVIEW_URL = 'pageview_url'
+    GOAL_TYPE_CHOICES = [
+        (GOAL_TYPE_CUSTOM_EVENT, 'Événement personnalisé'),
+        (GOAL_TYPE_PAGEVIEW_URL, 'Visite d’URL'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='conversion_goals')
+    name = models.CharField(max_length=150)
+    goal_type = models.CharField(max_length=30, choices=GOAL_TYPE_CHOICES)
+    target_value = models.CharField(max_length=500)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'goal_type', 'target_value'],
+                name='unique_project_conversion_goal'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.goal_type}: {self.target_value})"

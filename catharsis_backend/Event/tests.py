@@ -9,7 +9,7 @@ from django.utils import timezone
 from decouple import config
 
 from account.models import Customer
-from .models import Project, Session, Event
+from .models import ConversionGoal, Project, Session, Event
 
 
 class AnalyticsDashboardTests(TestCase):
@@ -158,3 +158,102 @@ class AnalyticsDashboardTests(TestCase):
         self.assertEqual(len(year_data['labels']), 12)
         self.assertEqual(year_data['data'][1], 1)
         self.assertEqual(year_data['data'][5], 5)
+
+
+class ConversionGoalsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create_user(
+            email=config('TEST_ANALYTICS_USER_EMAIL'),
+            password=config('TEST_ANALYTICS_USER_PASSWORD')
+        )
+        self.project = Project.objects.create(
+            customer=self.customer,
+            name='Conversion Test Project'
+        )
+        refresh = RefreshToken.for_user(self.customer)
+        self.token = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+
+    def test_create_list_and_delete_conversion_goals(self):
+        # 1. Create custom_event goal
+        res1 = self.client.post('/event/conversions/', {
+            'site_id': self.project.site_id,
+            'name': 'Inscription Newsletter',
+            'goal_type': 'custom_event',
+            'target_value': 'form_submit',
+        }, format='json')
+        self.assertEqual(res1.status_code, 201)
+        goal1_id = res1.json()['id']
+
+        # 2. Create pageview_url goal
+        res2 = self.client.post('/event/conversions/', {
+            'site_id': self.project.site_id,
+            'name': 'Visite Page Tarifs',
+            'goal_type': 'pageview_url',
+            'target_value': '/pricing',
+        }, format='json')
+        self.assertEqual(res2.status_code, 201)
+
+        # 3. Simulate 4 sessions: 1 triggers form_submit, 2 visit /pricing
+        now = timezone.now()
+        sessions = [Session.objects.create(project=self.project) for _ in range(4)]
+
+        # Session 0: form_submit + /pricing (both goals)
+        Event.objects.create(
+            site_id=self.project.site_id,
+            session_id=str(sessions[0].session_id),
+            event_type='form_submit',
+            url='https://example.com/signup',
+            client_timestamp=now,
+        )
+        Event.objects.create(
+            site_id=self.project.site_id,
+            session_id=str(sessions[0].session_id),
+            event_type='page_view',
+            url='https://example.com/pricing',
+            client_timestamp=now,
+        )
+        # Session 1: /pricing only
+        Event.objects.create(
+            site_id=self.project.site_id,
+            session_id=str(sessions[1].session_id),
+            event_type='page_view',
+            url='https://example.com/pricing',
+            client_timestamp=now,
+        )
+        # Sessions 2 & 3: non-converting page_view
+        for s in sessions[2:]:
+            Event.objects.create(
+                site_id=self.project.site_id,
+                session_id=str(s.session_id),
+                event_type='page_view',
+                url='https://example.com/',
+                client_timestamp=now,
+            )
+
+        # 4. Get conversions report
+        report_res = self.client.get(f'/event/conversions/?site_id={self.project.site_id}')
+        self.assertEqual(report_res.status_code, 200)
+        report = report_res.json()
+        self.assertEqual(report['total_sessions'], 4)
+        self.assertEqual(report['total_conversions'], 3)
+        self.assertEqual(report['converted_sessions'], 2)
+        self.assertEqual(report['conversion_rate'], 50.0)
+
+        goals_by_name = {g['name']: g for g in report['goals']}
+        self.assertEqual(goals_by_name['Inscription Newsletter']['conversions_count'], 1)
+        self.assertEqual(goals_by_name['Inscription Newsletter']['conversion_rate'], 25.0)
+        self.assertEqual(goals_by_name['Visite Page Tarifs']['conversions_count'], 2)
+        self.assertEqual(goals_by_name['Visite Page Tarifs']['conversion_rate'], 50.0)
+
+        # 5. Check dashboard KPI reflects dynamic conversion_rate
+        dash_res = self.client.get(f'/event/analytics/?site_id={self.project.site_id}')
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertEqual(dash_res.json()['kpi']['conversion_rate']['value'], 50.0)
+        self.assertEqual(dash_res.json()['kpi']['conversion_rate']['formatted'], '50.0%')
+
+        # 6. Delete goal 1
+        del_res = self.client.delete(f'/event/conversions/{goal1_id}/')
+        self.assertEqual(del_res.status_code, 204)
+        self.assertEqual(ConversionGoal.objects.filter(project=self.project).count(), 1)

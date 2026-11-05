@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-root">
+  <div class="dashboard-root" :class="{ 'dark-theme': themeStore.isDark }">
     <Head>
       <title>Dashboard - Catharsis Analytics</title>
       <meta name="description" content="Gotics Business & Web Analytics Dashboard" />
@@ -7,7 +7,7 @@
 
     <div class="dashboard-app-layout">
       <DashboardSidebar
-        :is-dark="isDark"
+        :is-dark="themeStore.isDark"
         @theme-change="handleThemeChange"
       />
 
@@ -51,6 +51,7 @@ import TrackingSnippetModal from '~/components/dashboard/TrackingSnippetModal.vu
 
 import { useProjectSiteStore } from '#imports';
 import { useAnalyticsStore } from '#imports';
+import { useThemeStore } from '~/stores/themeStore';
 export default{
   components:{
     DashboardSidebar,
@@ -59,10 +60,10 @@ export default{
     TrackingSnippetModal
   },
   setup(){
-    const isDark = ref(false)
+    const themeStore = useThemeStore()
 
     const handleThemeChange = (dark: boolean) => {
-      isDark.value = dark
+      themeStore.setTheme(dark)
     }
 
     // Manage my modal
@@ -107,7 +108,7 @@ export default{
 
 
     return{
-      isDark,
+      themeStore,
       handleThemeChange,
       isRegisterSiteModalOpen,
       isTrackingSnippetModalOpen,

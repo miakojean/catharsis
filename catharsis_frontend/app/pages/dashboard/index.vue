@@ -131,11 +131,14 @@ function handleCloseRegisterSiteModal() {
   projectStore.clearMessages()
 }
 
-// Theme toggle state (default light matching the screenshot)
-const isDark = ref(false)
+// Theme toggle state (sync via themeStore)
+import { useThemeStore } from '~/stores/themeStore'
+
+const themeStore = useThemeStore()
+const isDark = computed(() => themeStore.isDark)
 
 const handleThemeChange = (dark: boolean) => {
-  isDark.value = dark
+  themeStore.setTheme(dark)
 }
 </script>
 

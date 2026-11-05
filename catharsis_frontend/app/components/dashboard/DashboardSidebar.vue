@@ -3,7 +3,7 @@
     class="dashboard-sidebar"
     :class="{
       'is-collapsed': isCollapsed,
-      'is-dark': isDark
+      'is-dark': currentIsDark
     }"
   >
     <!-- Brand Logo & Collapse Toggle -->
@@ -242,9 +242,9 @@
         <button
           type="button"
           class="toggle-opt"
-          :class="{ 'active': !isDark }"
+          :class="{ 'active': !currentIsDark }"
           :title="isCollapsed ? 'Mode clair' : undefined"
-          @click="$emit('theme-change', false)"
+          @click="handleThemeToggle(false)"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
@@ -263,9 +263,9 @@
         <button
           type="button"
           class="toggle-opt"
-          :class="{ 'active': isDark }"
+          :class="{ 'active': currentIsDark }"
           :title="isCollapsed ? 'Mode sombre' : undefined"
-          @click="$emit('theme-change', true)"
+          @click="handleThemeToggle(true)"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -279,16 +279,28 @@
 
 <script setup lang="ts">
 import CatharsisLogo from '~/components/brand/CatharsisLogo.vue'
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useThemeStore } from '~/stores/themeStore'
 
-defineProps<{
+const props = defineProps<{
   isDark?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'theme-change', isDark: boolean): void
 }>()
+
+const themeStore = useThemeStore()
+
+const currentIsDark = computed(() => {
+  return props.isDark !== undefined ? props.isDark : themeStore.isDark
+})
+
+function handleThemeToggle(dark: boolean) {
+  themeStore.setTheme(dark)
+  emit('theme-change', dark)
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -401,6 +413,24 @@ watch(() => route.path, (path) => {
   width: 72px;
   min-width: 72px;
   padding: 1.25rem 0.5rem;
+}
+
+/* Thème sombre spécifique à la sidebar */
+.dashboard-sidebar.is-dark {
+  --sidebar-bg: #0f172a;
+  --border-color: #1e293b;
+  --text-heading: #f8fafc;
+  --text-muted: #94a3b8;
+  --input-bg: #1e293b;
+  --card-bg: #111827;
+  --icon-bg: #1e293b;
+  --toggle-bg: #1e293b;
+  --nav-text: #94a3b8;
+  --nav-hover-bg: #1e293b;
+  --nav-active-bg: #1e3a8a;
+  background-color: var(--sidebar-bg);
+  border-right-color: var(--border-color);
+  color: var(--text-heading);
 }
 
 /* Brand Header */

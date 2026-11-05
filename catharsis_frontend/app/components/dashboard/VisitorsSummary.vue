@@ -173,7 +173,7 @@ watch(
   flex-direction: column;
   gap: 1.25rem;
   font-family: 'Inter Tight', 'Inter', sans-serif;
-  color: #0f172a;
+  color: var(--text-heading, #0f172a);
 }
 
 .summary-header {
@@ -185,11 +185,12 @@ watch(
 
 .summary-header h2 {
   font-size: 1.25rem;
+  color: var(--text-heading, #0f172a);
 }
 
 .summary-header p {
   margin-top: 0.3rem;
-  color: #64748b;
+  color: var(--text-muted, #64748b);
   font-size: 0.9rem;
 }
 
@@ -197,22 +198,22 @@ watch(
   display: flex;
   align-items: flex-end;
   gap: 1rem;
-  color: #64748b;
+  color: var(--text-muted, #64748b);
   font-size: 0.85rem;
 }
 
 .total-box strong {
-  color: #0f172a;
+  color: var(--text-heading, #0f172a);
   font-size: 1.75rem;
   line-height: 1;
 }
 
 .notice {
   padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 0.75rem;
-  background: white;
-  color: #475569;
+  background: var(--card-bg, white);
+  color: var(--text-muted, #475569);
   font-size: 0.875rem;
 }
 

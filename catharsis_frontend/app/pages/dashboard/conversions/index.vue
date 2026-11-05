@@ -49,11 +49,13 @@ import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 import ConversionsOverview from '~/components/conversions/ConversionsOverview.vue'
 import RegisterSiteModal from '~/components/modale/RegisterSiteModal.vue'
 import TrackingSnippetModal from '~/components/dashboard/TrackingSnippetModal.vue'
+import { useThemeStore } from '~/stores/themeStore'
 
 const projectStore = useProjectSiteStore()
 const analyticsStore = useAnalyticsStore()
+const themeStore = useThemeStore()
 
-const isDark = ref(false)
+const isDark = computed(() => themeStore.isDark)
 const isRegisterSiteModalOpen = ref(false)
 const isTrackingSnippetModalOpen = ref(false)
 const createdProject = ref<Project | null>(null)
@@ -70,7 +72,7 @@ const activeProject = computed(() => {
 })
 
 function handleThemeChange(dark: boolean) {
-  isDark.value = dark
+  themeStore.setTheme(dark)
 }
 
 async function handleCreateProject(payload: { name: string }) {

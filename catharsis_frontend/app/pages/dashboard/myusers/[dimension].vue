@@ -1,12 +1,15 @@
 <template>
-  <div class="users-page">
+  <div class="users-page" :class="{ 'dark-theme': themeStore.isDark }">
     <Head>
       <Title>{{ reportTitle }} — Catharsis Analytics</Title>
       <Meta name="description" content="Analysez l'origine et les caractéristiques de votre audience." />
     </Head>
 
     <div class="users-layout">
-      <DashboardSidebar :is-dark="false" />
+      <DashboardSidebar
+        :is-dark="themeStore.isDark"
+        @theme-change="themeStore.setTheme"
+      />
 
       <main class="users-main">
 
@@ -42,7 +45,6 @@
                   <th>{{ reportDescription.charAt(0).toUpperCase() + reportDescription.slice(1) }}</th>
                   <th class="text-right">Visiteurs</th>
                   <th class="text-right">Proportion</th>
-                  <th class="text-center">Statut</th>
                 </tr>
               </thead>
               <tbody>
@@ -54,11 +56,6 @@
                   <td class="text-right font-mono">{{ item.visitors }}</td>
                   <td class="text-right font-mono">
                     {{ ((item.visitors / (report.total_visitors || 1)) * 100).toFixed(1) }}%
-                  </td>
-                  <td class="text-center">
-                    <span class="status-pill" :class="getBadgeTheme(index)">
-                      {{ getBadgeLabel(index) }}
-                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -79,8 +76,10 @@ import { useAnalyticsStore, type AudienceReport } from '~/stores/analyticsStore'
 import type { PeriodValue } from '~/components/Tools/periodFilter.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
 import periodFilter from '~/components/Tools/periodFilter.vue'
+import { useThemeStore } from '~/stores/themeStore'
 
 const route = useRoute()
+const themeStore = useThemeStore()
 const projectStore = useProjectSiteStore()
 const analyticsStore = useAnalyticsStore()
 const projects = computed(() => projectStore.projects)
@@ -113,8 +112,8 @@ async function loadReport() {
   try {
     report.value = await analyticsStore.fetchAudienceReport(dimension.value, {
       site_id: selectedSiteId.value,
-      start_date: period?.start,
-      end_date: period?.end,
+      start_date: period?.start ?? undefined,
+      end_date: period?.end ?? undefined,
     })
   } catch (error: any) {
     errorMessage.value = error?.data?.error || error?.message || 'Impossible de charger ces données.'
@@ -122,17 +121,6 @@ async function loadReport() {
   } finally {
     isLoading.value = false
   }
-}
-
-// Fonctions utilitaires pour simuler les badges de la maquette
-const getBadgeTheme = (index: number) => {
-  const themes = ['theme-pending', 'theme-ready', 'theme-arrived', 'theme-draft', 'theme-canceled']
-  return themes[index % themes.length]
-}
-
-const getBadgeLabel = (index: number) => {
-  const labels = ['En cours', 'Prêt', 'Terminé', 'Brouillon', 'Annulé']
-  return labels[index % labels.length]
 }
 
 onMounted(async () => {
@@ -160,9 +148,19 @@ watch(selectedPeriod, () => {
 /* Conservez vos styles généraux existants ici... */
 .users-page {
   min-height: 100vh;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg-main, #f8fafc);
+  color: var(--text-heading, #0f172a);
   font-family: 'Inter Tight', 'Inter', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.users-page.dark-theme {
+  --bg-main: #0b0f19;
+  --card-bg: #111827;
+  --sidebar-bg: #0f172a;
+  --border-color: #1e293b;
+  --text-heading: #f8fafc;
+  --text-muted: #94a3b8;
 }
 
 .users-layout {
@@ -203,8 +201,8 @@ h1 {
 .site-picker,
 .summary-card,
 .report-card {
-  border: 1px solid #e2e8f0;
-  background: none;
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--card-bg, transparent);
 }
 
 .site-picker {
@@ -295,9 +293,7 @@ h1 {
   text-align: right;
 }
 
-.text-center {
-  text-align: center;
-}
+
 
 .font-medium {
   font-weight: 500;
@@ -322,15 +318,6 @@ h1 {
   font-weight: bold;
   letter-spacing: 1px;
   line-height: 1;
-}
-
-/* Badges de statut */
-.status-pill {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 .theme-pending { background: #fef9c3; color: #a16207; }

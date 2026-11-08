@@ -181,6 +181,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATICFILES_DIRS = [
+    BASE_DIR / 'static', 
+]
+
 # Model d'utilisateur personnalisé
 AUTH_USER_MODEL = 'custom_account.Customer'
 SITE_ID = 1

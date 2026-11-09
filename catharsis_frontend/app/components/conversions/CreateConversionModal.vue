@@ -227,11 +227,12 @@ async function handleSubmit() {
 .conversion-modal-card {
   width: 100%;
   max-width: 540px;
+  height: 90vh;
   background: var(--card-bg, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 16px;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
-  overflow: hidden;
+  overflow-y: auto;
   animation: modalPop 0.2s ease-out;
 }
 
@@ -311,12 +312,14 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
+  width: 100%;
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  width: 100%;
 }
 
 .field-label {
@@ -412,6 +415,7 @@ async function handleSubmit() {
   border-radius: 10px;
   border: 1px solid #1e293b;
   overflow: hidden;
+  width: 100%;
 }
 
 .snippet-preview-header {

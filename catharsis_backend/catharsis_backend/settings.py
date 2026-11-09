@@ -82,6 +82,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+    "http://localhost:5173"
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
@@ -180,6 +181,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static', 
+]
 
 # Model d'utilisateur personnalisé
 AUTH_USER_MODEL = 'custom_account.Customer'

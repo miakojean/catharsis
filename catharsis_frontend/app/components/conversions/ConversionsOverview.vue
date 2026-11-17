@@ -32,7 +32,7 @@
     </p>
 
     <!-- Cartes de synthèse KPI -->
-    <div class="kpi-summary-grid">
+    <div class="kpi-summary-grid" v-if="!conversionStore.isLoading || conversionStore.goals.length > 0 || conversionStore.totalSessions > 0 || conversionStore.totalConversions > 0" >
       <!-- Carte 1 : Taux de conversion global -->
       <div class="summary-metric-card highlight-card">
         <div class="metric-top">

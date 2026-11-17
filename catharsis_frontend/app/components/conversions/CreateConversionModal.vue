@@ -317,6 +317,7 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  width: 100%;
 }
 
 .field-label {
@@ -412,6 +413,7 @@ async function handleSubmit() {
   border-radius: 10px;
   border: 1px solid #1e293b;
   overflow: hidden;
+  width: 100%;
 }
 
 .snippet-preview-header {
